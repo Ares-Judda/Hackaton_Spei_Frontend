@@ -1,33 +1,42 @@
 import React from "react";
 
-const fonts = [
-  { name: "Roboto", label: "Roboto" },
-  { name: "Open Sans", label: "Open Sans" },
-  { name: "Lato", label: "Lato" },
-  { name: "Montserrat", label: "Montserrat" },
-  { name: "Noto Sans", label: "Noto Sans" },
+const sizes = [
+  { label: "A pequeña", value: "small" },
+  { label: "A mediana", value: "medium" },
+  { label: "A grande", value: "large" },
 ];
 
-const FontSelector = ({ userSettings, updateFont }) => {
+const FontSizeSelector = ({ userSettings, updateFontSize }) => {
+  const fontSample = "Ejemplo de tamaño";
+
   return (
-    <div style={{ marginBottom: "20px" }}>
-      <h3>Elige tu fuente favorita</h3>
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "10px" }}>
-        {fonts.map((font) => (
+    <div style={{ marginTop: "20px" }}>
+      <h3>Elige tu tamaño de letra</h3>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+          marginTop: "10px",
+        }}
+      >
+        {sizes.map((size) => (
           <div
-            key={font.name}
-            onClick={() => updateFont(font.name)}
-            className={`selection-button ${userSettings.font === font.name ? "selected" : ""}`}
+            key={size.value}
+            onClick={() => updateFontSize(size.value)}
+            className={`selection-button ${
+              userSettings.fontSize === size.value ? "selected" : ""
+            }`}
             style={{
-              fontFamily: `'${font.name}', sans-serif`,
-              padding: "10px",
-              borderRadius: "10px",
-              border: userSettings.font === font.name ? "2px solid #0078D4" : "1px solid #ccc",
-              cursor: "pointer",
-              backgroundColor: "#f8f9fa",
+              fontSize:
+                size.value === "small"
+                  ? "14px"
+                  : size.value === "medium"
+                  ? "18px"
+                  : "22px",
             }}
           >
-            Ejemplo: La fuente se verá así
+            {size.label} - Ejemplo de texto
           </div>
         ))}
       </div>
@@ -35,4 +44,4 @@ const FontSelector = ({ userSettings, updateFont }) => {
   );
 };
 
-export default FontSelector;
+export default FontSizeSelector;
