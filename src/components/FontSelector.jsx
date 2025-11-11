@@ -1,26 +1,19 @@
 import React from "react";
 
-// Lista de fuentes compatibles
+// Solo fuentes 100% seguras en todos los dispositivos
 const fonts = [
   { name: "Arial", label: "Arial" },
   { name: "Verdana", label: "Verdana" },
-  { name: "Times New Roman", label: "Times New Roman" },
-  { name: "Courier New", label: "Courier New" },
-  { name: "Roboto", label: "Roboto" }, // cargada vía Google Fonts
+  { name: "Tahoma", label: "Tahoma" },
+  { name: "Trebuchet MS", label: "Trebuchet MS" },
+  { name: "Georgia", label: "Georgia" },
 ];
 
 const FontSelector = ({ userSettings, updateFont }) => {
   return (
     <div style={{ marginBottom: "20px" }}>
       <h3>Elige tu fuente favorita</h3>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-          marginTop: "10px",
-        }}
-      >
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "10px" }}>
         {fonts.map((font) => (
           <div
             key={font.name}
@@ -32,6 +25,7 @@ const FontSelector = ({ userSettings, updateFont }) => {
               borderRadius: "10px",
               border: userSettings.font === font.name ? "2px solid #0078D4" : "1px solid #ccc",
               cursor: "pointer",
+              backgroundColor: "#f8f9fa",
             }}
           >
             Ejemplo: La fuente se verá así
