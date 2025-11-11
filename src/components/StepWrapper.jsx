@@ -21,16 +21,19 @@ const StepWrapper = ({ children, userSettings }) => {
         fontSize,
         color: textColor,
         transition: 'all 0.3s ease',
+        padding: '20px',
       }}
     >
       <div
         style={{
-          width: '350px',
+          width: '100%',
+          maxWidth: '500px', // ancho similar al HomeView
           backgroundColor: theme === 'dark' ? '#2c2c2c' : '#fff',
-          padding: '30px',
+          padding: '20px',   // reducimos padding para ganar espacio interno
           borderRadius: '20px',
           boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
           position: 'relative',
+          boxSizing: 'border-box', // ⚡ importante para que padding no reduzca el ancho
         }}
       >
         {children}

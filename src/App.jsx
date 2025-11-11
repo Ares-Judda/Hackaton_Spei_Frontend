@@ -1,37 +1,49 @@
-import React, { useState } from 'react';
-import LoginView from './views/LoginView';
-import WizardView from './views/WizardView';
+import React, { useState } from "react";
+import LoginView from "./views/LoginView";
+import WizardView from "./views/WizardView";
+import HomeView from "./views/HomeView";
 
 const App = () => {
   const [showWizard, setShowWizard] = useState(false);
-  const [hasSeenQuestionnaire, setHasSeenQuestionnaire] = useState(false);
+  const [showHome, setShowHome] = useState(false);
   const [userSettings, setUserSettings] = useState({
-    theme: 'light',
-    font: 'Segoe UI',
-    fontSize: '16px',
+    theme: "light",
+    font: "Arial",
+    fontSize: "16px",
   });
 
+  // Estado temporal en memoria para saber si ya se contestó la encuesta durante esta sesión
+  const [hasSeenQuestionnaireThisSession, setHasSeenQuestionnaireThisSession] = useState(false);
+
+  // Cuando finaliza el Wizard
   const handleFinishWizard = (finalSettings) => {
-    setUserSettings(finalSettings);
-    setShowWizard(false);
+    setUserSettings(finalSettings); // aplica cambios visuales
+    setShowWizard(false); // vuelve al login
+    setHasSeenQuestionnaireThisSession(true); // ya no mostrar popup hasta reiniciar app
+  };
+
+  // Login exitoso
+  const handleLoginSuccess = () => {
+    setShowHome(true); // pasa al Home
   };
 
   return (
-    <div className="phone-frame">
-      {!showWizard ? (
-        <LoginView
-          userSettings={userSettings}
-          onLoginSuccess={() => console.log('Login exitoso')}
-          onShowQuestionnaire={() => {
-            setShowWizard(true);
-            setHasSeenQuestionnaire(true);
-          }}
-          hasSeenQuestionnaire={hasSeenQuestionnaire}
-        />
+    <>
+      {!showHome ? (
+        !showWizard ? (
+          <LoginView
+            userSettings={userSettings}
+            onLoginSuccess={handleLoginSuccess}
+            onShowQuestionnaire={() => setShowWizard(true)}
+            hasSeenQuestionnaire={hasSeenQuestionnaireThisSession}
+          />
+        ) : (
+          <WizardView onFinish={handleFinishWizard} />
+        )
       ) : (
-        <WizardView onFinish={handleFinishWizard} />
+        <HomeView userSettings={userSettings} />
       )}
-    </div>
+    </>
   );
 };
 
