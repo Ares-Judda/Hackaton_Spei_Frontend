@@ -6,7 +6,7 @@ export const useFormController = () => {
     theme: "light",
     fontSize: "16px",
     canReadSmallText: true,
-    usesScreenReader: false,
+    usesScreenReader: true,
     confidence: "medium",
     literacy: "medium",
     name: "",
