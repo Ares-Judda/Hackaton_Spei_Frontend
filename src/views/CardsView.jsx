@@ -222,14 +222,15 @@ export default function CardsView({ userSettings, onBack }) {
         document.body.removeChild(ta);
       }
       setToast({ type: "success", msg: `${label} copiado` });
+      speakText(`${label} copiado`);
       setTimeout(() => setToast(null), 1800);
     } catch {
       setToast({ type: "error", msg: `No se pudo copiar ${label}` });
+      speakText(`No se pudo copiar ${label}`);
       setTimeout(() => setToast(null), 1800);
     }
   };
 
-  // Formateo + validación MM/AA
   const handleExpChange = (value) => {
     const digits = value.replace(/[^\d]/g, "").slice(0, 4);
     let formatted = digits;
@@ -263,6 +264,7 @@ export default function CardsView({ userSettings, onBack }) {
     const errs = validate();
     if (Object.keys(errs).length) {
       setToast({ type: "error", msg: "Revisa los campos marcados." });
+      speakText("Revisa los campos marcados");
       return;
     }
     setSubmitting(true);
@@ -297,6 +299,7 @@ export default function CardsView({ userSettings, onBack }) {
         cvv: "",
         external: false,
       });
+      speakText("Tarjeta agregada correctamente");
     } finally {
       setSubmitting(false);
     }
@@ -306,41 +309,44 @@ export default function CardsView({ userSettings, onBack }) {
     if (external) setOtherCards((prev) => prev.filter((c) => c.id !== id));
     else setMyCards((prev) => prev.filter((c) => c.id !== id));
     setToast({ type: "success", msg: "Tarjeta eliminada" });
+    speakText("Tarjeta eliminada");
     setTimeout(() => setToast(null), 1200);
   };
 
   const openDetails = (card) => {
     setDetailCard(card);
     setDetailOpen(true);
+    speakText(`Detalles de ${card.alias}`);
   };
 
   const toMXN = (n) =>
     new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
 
+  // ===== Lectura en voz =====
+  function speakText(text) {
+    if (typeof window === "undefined") return;
+    if (!("speechSynthesis" in window)) return;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "es-MX";
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  }
 
   // ===== UI =====
   return (
     <div style={container}>
       <div style={shell}>
         <div style={{ position: "relative", marginBottom: "25px" }}>
-          {/* Botón volver en esquina superior izquierda */}
           {onBack && (
             <button
-              onClick={onBack}
-              style={{
-                ...ghostBtn,
-                position: "absolute",
-                top: 0,
-                left: 0,
-              }}
+              onClick={() => { onBack(); speakText("Volver"); }}
+              style={{ ...ghostBtn, position: "absolute", top: 0, left: 0 }}
               onMouseDown={onPressIn}
               onMouseUp={onPressOut}
             >
               ← Volver
             </button>
           )}
-
-          {/* Logo centrado con texto a la derecha */}
           <div
             style={{
               display: "flex",
@@ -359,12 +365,13 @@ export default function CardsView({ userSettings, onBack }) {
                 borderRadius: "50%",
                 objectFit: "cover",
                 backgroundColor: "white",
-                marginBottom: "-15px", // opcional
+                marginBottom: "-15px",
               }}
             />
             <p>B-Accesible</p>
           </div>
         </div>
+
 
         <h1 style={h1}>Mis Tarjetas</h1>
 
