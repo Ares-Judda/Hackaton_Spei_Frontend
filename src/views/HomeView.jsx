@@ -1,4 +1,7 @@
 import React, { useState } from "react";
+import AppWrapper from "../components/AppWrapper";
+import { useNavigate } from "react-router-dom";
+import AccountCard from "../components/AcountCard";
 import {
   FaArrowDown,
   FaArrowUp,
@@ -11,7 +14,8 @@ import {
   FaExchangeAlt,
 } from "react-icons/fa";
 
-const HomeView = ({ userSettings }) => {
+const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccouts, goToCards  }) => {
+  
   const [simpleMode, setSimpleMode] = useState(false);
 
   const isDark = userSettings.theme === "dark";
@@ -20,7 +24,7 @@ const HomeView = ({ userSettings }) => {
   const textColor = isDark ? "#f1f5f9" : "#1e293b";
   const buttonBg = accentColor;
   const buttonHover = "#005EA6";
-  const fontSize = userSettings.fontSize || "16px";
+    const fontSize = userSettings.fontSize || "16px";
   const fontFamily = userSettings.font || "Segoe UI";
 
   const userName = "Juan Pérez";
@@ -31,37 +35,29 @@ const HomeView = ({ userSettings }) => {
     {
       icon: <FaArrowDown />,
       label: "Recibir",
-      onClick: () => alert("Recibir dinero"),
+      onClick: () => goToReceive(),
     },
     {
       icon: <FaArrowUp />,
       label: "Transferir",
-      onClick: () => alert("Transferir dinero"),
-    },
-    {
-      icon: <FaCreditCard />,
-      label: "Mis Tarjetas",
-      onClick: () => alert("Ver tarjetas"),
+      onClick: () => goToTransfer() ,
     },
     {
       icon: <FaWallet />,
-      label: "Cuentas",
-      onClick: () => alert("Ver cuentas"),
+      label: "Saldo / Cuentas",
+      onClick: () => goToAccouts(),
     },
     {
       icon: <FaMoneyBillWave />,
-      label: "Pagos",
-      onClick: () => alert("Realizar pagos"),
+      label: "Pago de servicios",
+      onClick: () => goToPay(),
     },
+    
+    
     {
-      icon: <FaHistory />,
-      label: "Historial",
-      onClick: () => alert("Ver historial"),
-    },
-    {
-      icon: <FaCog />,
-      label: "Ajustes",
-      onClick: () => alert("Configurar cuenta"),
+      icon: <FaCreditCard />,
+      label: "Mis Tarjetas",
+      onClick: () => goToCards(),
     },
     {
       icon: <FaChartLine />,
@@ -69,27 +65,33 @@ const HomeView = ({ userSettings }) => {
       onClick: () => alert("Ver inversiones"),
     },
     {
-      icon: <FaExchangeAlt />,
-      label: "Cambio de divisas",
-      onClick: () => alert("Cambio de divisas"),
+      icon: <FaCog />,
+      label: "Ajustes",
+      onClick: () => alert("Configurar cuenta"),
     },
+    
   ];
 
   const simpleActions = [
     {
       icon: <FaArrowDown />,
       label: "Recibir",
-      onClick: () => alert("Recibir dinero"),
+      onClick: () => goToReceive(),
     },
     {
       icon: <FaArrowUp />,
       label: "Transferir",
-      onClick: () => alert("Transferir dinero"),
+      onClick: () => goToTransfer(),
     },
     {
       icon: <FaWallet />,
       label: "Saldo / Cuentas",
-      onClick: () => alert("Ver saldo y cuentas"),
+      onClick: () => goToAccouts(),
+    },
+    {
+      icon: <FaMoneyBillWave />,
+      label: "Pago de servicios",
+      onClick: () => goToPay(),
     },
   ];
 
