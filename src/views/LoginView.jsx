@@ -26,8 +26,7 @@ const LoginView = ({ userSettings, onLoginSuccess, onGoToSignup }) => {
 
     try {
       await login(email, password);
-
-      onLoginSuccess();
+      onLoginSuccess(); // App.jsx v3 se encargará de la validación
     } catch (err) {
       if (err && err.message) {
         setError(err.message);
@@ -229,7 +228,7 @@ const LoginView = ({ userSettings, onLoginSuccess, onGoToSignup }) => {
           </button>
         </form>
 
-        <div style={{ marginTop: 8, fontSize: ".9rem", opacity: .9 }}>
+        <div style={{ marginTop: 8, fontSize: ".9rem", opacity: 0.9 }}>
           ¿No tienes cuenta?{" "}
           <button
             type="button"

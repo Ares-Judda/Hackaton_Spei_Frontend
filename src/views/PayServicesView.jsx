@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { FaBolt, FaTint, FaWifi, FaPhone, FaPlus } from "react-icons/fa";
 import logo from "../assets/logo.png";
+import { getAiRisk } from "../services/aiService";
 
 export default function PayServicesView({ userSettings, onBack }) {
   // ===== Servicios predefinidos =====
@@ -13,6 +14,27 @@ export default function PayServicesView({ userSettings, onBack }) {
 
   // ===== Cuentas de origen (mock) =====
   const sourceAccounts = [
+    {
+      id: "acc1",
+      alias: "Cuenta Nómina",
+      number: "1234 5678 9012 3456",
+      bank: "Banco Inclusivo",
+      balance: 8200.55,
+    },
+    {
+      id: "acc2",
+      alias: "Ahorros",
+      number: "6543 2109 8765 4321",
+      bank: "Banco Inclusivo",
+      balance: 25000.0,
+    },
+    {
+      id: "acc3",
+      alias: "Gastos",
+      number: "1111 2222 3333 4444",
+      bank: "Banco Inclusivo",
+      balance: 1200.0,
+    },
     {
       id: "acc1",
       alias: "Cuenta Nómina",
@@ -62,6 +84,11 @@ export default function PayServicesView({ userSettings, onBack }) {
   const [toast, setToast] = useState(null); // {type, msg}
   const [successOpen, setSuccessOpen] = useState(false);
 
+  // ===== Estados para IA de riesgo =====
+  const [aiRiskData, setAiRiskData] = useState(null);
+  const [loadingRisk, setLoadingRisk] = useState(false);
+  const [transferAmount, setTransferAmount] = useState(0);
+
   const setField = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const toNumber = (v) => {
@@ -86,6 +113,180 @@ export default function PayServicesView({ userSettings, onBack }) {
   const summaryRef = mode === "preset" ? form.refPreset : form.customRef;
   const summaryConvenio =
     mode === "preset" ? "(automático)" : form.customConvenio || "-";
+
+  // ===== Mapeo de niveles de riesgo =====
+  const mapearNivelRiesgo = (nivel) => {
+    const mapeo = {
+      low: "bajo",
+      medium: "intermedio",
+      high: "alto",
+      bajo: "bajo",
+      medio: "intermedio",
+      alto: "alto",
+    };
+    return mapeo[nivel?.toLowerCase()] || "intermedio";
+  };
+
+  // ===== Mapeo de factores de riesgo a mensajes CLAROS para el usuario =====
+  const traducirFactoresRiesgo = (factores) => {
+    if (!factores || !Array.isArray(factores)) return [];
+
+    const mapeoFactores = {
+      // Factores técnicos de la API
+      HIGH_AMOUNT: "El monto es más alto de lo habitual",
+      UNUSUAL_TIME: "Estás pagando en un horario poco común",
+      FIRST_TIME_SERVICE: "Es la primera vez que pagas este servicio",
+      UNUSUAL_PATTERN:
+        "El patrón de pago es diferente a tu comportamiento normal",
+      SUSPICIOUS_SERVICE: "El servicio tiene características inusuales",
+      CUSTOM_SERVICE:
+        "Servicio personalizado - Verifica los datos cuidadosamente",
+      AMOUNT_MUCH_HIGHER_THAN_AVERAGE:
+        "El monto es significativamente más alto que tu promedio habitual",
+      NEW_BENEFICIARY: "Estás pagando a un nuevo beneficiario",
+      LOW_HISTORY: "Tienes poco historial de pagos",
+
+      // Factores en español por si acaso
+      "Monto elevado": "El monto es más alto de lo habitual",
+      "Horario inusual": "Estás pagando en un horario poco común",
+      "Servicio nuevo": "Es la primera vez que pagas este servicio",
+      "Servicio personalizado":
+        "Servicio personalizado - Verifica los datos cuidadosamente",
+    };
+
+    return factores.map(
+      (factor) => mapeoFactores[factor] || `Factor de riesgo: ${factor}`
+    );
+  };
+
+  // ===== Generar mensaje de riesgo accesible =====
+  const generarMensajeRiesgo = (nivel, factores, esServicioPersonalizado) => {
+    const nivelTraducido = mapearNivelRiesgo(nivel);
+
+    if (nivelTraducido === "alto") {
+      return "Revisa cuidadosamente este pago";
+    }
+
+    if (nivelTraducido === "intermedio") {
+      return esServicioPersonalizado
+        ? "Servicio personalizado - Verifica datos"
+        : "Revisa los detalles del pago";
+    }
+
+    return esServicioPersonalizado ? "Servicio personalizado" : "Pago seguro";
+  };
+
+  // ===== Función para consultar riesgo de IA =====
+  const consultarRiesgoIA = async () => {
+    if (!amount || amount <= 0) return;
+
+    setLoadingRisk(true);
+    try {
+      const payload = {
+        user_id: "current_user",
+        amount: amount,
+        is_new_beneficiary: mode === "custom", // Servicio personalizado es como nuevo beneficiario
+        hour_of_day: new Date().getHours(),
+        num_past_transactions: mode === "preset" ? 3 : 0, // Más historial para servicios predefinidos
+        avg_transaction_amount: 500, // Monto promedio estimado para servicios
+        max_transaction_amount: amount,
+        num_transactions_to_beneficiary: mode === "preset" ? 2 : 0,
+        is_new_device: false,
+        geolocation_changed: false,
+      };
+
+      const response = await getAiRisk(payload);
+      setAiRiskData(response.data);
+    } catch (error) {
+      console.error("Error al consultar riesgo de IA:", error);
+      // En caso de error, usar lógica de respaldo
+      setAiRiskData({
+        result: {
+          risk_level: mode === "custom" ? "medium" : "low",
+          risk_score: mode === "custom" ? 65 : 25,
+          risk_factors:
+            mode === "custom" ? ["custom_service"] : ["routine_payment"],
+        },
+      });
+    } finally {
+      setLoadingRisk(false);
+    }
+  };
+
+  // ===== Determinar nivel de riesgo basado en IA o lógica de respaldo =====
+  const determinarRiesgo = () => {
+    if (loadingRisk) {
+      return {
+        level: "calculando",
+        msg: "Calculando riesgo...",
+        levelTraducido: "calculando",
+        factors: [],
+      };
+    }
+
+    if (aiRiskData) {
+      const riskLevel = aiRiskData.result.risk_level;
+      const riskFactors = aiRiskData.result.risk_factors;
+      const nivelTraducido = mapearNivelRiesgo(riskLevel);
+      const factoresTraducidos = traducirFactoresRiesgo(riskFactors);
+      const mensaje = generarMensajeRiesgo(
+        riskLevel,
+        factoresTraducidos,
+        mode === "custom"
+      );
+
+      return {
+        level: riskLevel,
+        levelTraducido: nivelTraducido,
+        msg: mensaje,
+        factors: factoresTraducidos,
+      };
+    }
+
+    // Lógica de respaldo si no hay datos de IA
+    const esServicioPersonalizado = mode === "custom";
+    const montoAlto = amount > 5000; // Threshold más bajo para servicios
+
+    if (esServicioPersonalizado) {
+      return {
+        level: "medium",
+        levelTraducido: "intermedio",
+        msg: "Servicio personalizado - Verifica datos",
+        factors: ["Servicio personalizado - Verifica los datos cuidadosamente"],
+      };
+    } else if (montoAlto) {
+      return {
+        level: "medium",
+        levelTraducido: "intermedio",
+        msg: "Revisa los detalles del pago",
+        factors: ["El monto es más alto de lo habitual para servicios"],
+      };
+    } else {
+      return {
+        level: "low",
+        levelTraducido: "bajo",
+        msg: "Pago seguro",
+        factors: ["Pago rutinario"],
+      };
+    }
+  };
+
+  const riesgoActual = determinarRiesgo();
+
+  // ===== Efectos para consultar riesgo cuando cambien los parámetros =====
+  useEffect(() => {
+    if (amount > 0) {
+      const timeoutId = setTimeout(consultarRiesgoIA, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [amount, mode, selectedService]);
+
+  // ===== Capturar el monto cuando se confirma el pago =====
+  useEffect(() => {
+    if (amount > 0) {
+      setTransferAmount(amount);
+    }
+  }, [amount]);
 
   // ===== Estilos (coherentes con Home/Transfer/Accounts/Receive) =====
   const theme = userSettings?.theme;
@@ -285,8 +486,10 @@ export default function PayServicesView({ userSettings, onBack }) {
                 top: 0,
                 left: 0,
               }}
-              onMouseDown={onPressIn}
-              onMouseUp={onPressOut}
+              onMouseDown={(e) =>
+                (e.currentTarget.style.transform = "scale(0.98)")
+              }
+              onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
             >
               ← Volver
             </button>
@@ -541,41 +744,56 @@ export default function PayServicesView({ userSettings, onBack }) {
           </div>
         </div>
 
-        {/* Acciones */}
+        {/* Indicador de Riesgo y Acciones */}
         <div
-          style={{ display: "flex", justifyContent: "space-between", gap: 10 }}
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+          }}
         >
-          <button
-            onClick={onBack}
-            style={ghostBtn}
-            onMouseDown={(e) =>
-              (e.currentTarget.style.transform = "scale(0.98)")
-            }
-            onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
-          >
-            Cancelar
-          </button>
+          <p style={{ fontSize: "0.9rem", color: subtleText }}>
+            Riesgo estimado:{" "}
+            <b
+              style={{
+                color:
+                  riesgoActual.levelTraducido === "alto"
+                    ? "#f87171"
+                    : riesgoActual.levelTraducido === "intermedio"
+                    ? "#eab308"
+                    : riesgoActual.levelTraducido === "calculando"
+                    ? subtleText
+                    : "#22c55e",
+              }}
+            >
+              {riesgoActual.levelTraducido === "calculando"
+                ? "CALCULANDO"
+                : riesgoActual.levelTraducido.toUpperCase()}
+            </b>{" "}
+            · {riesgoActual.msg}
+          </p>
+
           <button
             onClick={pay}
-            disabled={submitting}
+            disabled={submitting || loadingRisk}
             style={{
               ...primaryBtn,
               backgroundColor: accentColor,
-              opacity: submitting ? 0.8 : 1,
+              opacity: submitting || loadingRisk ? 0.8 : 1,
             }}
             onMouseEnter={onHoverIn}
             onMouseLeave={onHoverOut}
             onMouseDown={onPressIn}
             onMouseUp={onPressOut}
           >
-            {submitting ? "Procesando..." : "Pagar ahora"}
+            {submitting
+              ? "Procesando..."
+              : loadingRisk
+              ? "Calculando..."
+              : "Pagar ahora"}
           </button>
         </div>
-
-        {/* Toast */}
-        {toast && toast.type !== "success" && (
-          <div style={toastBox(toast.type)}>{toast.msg}</div>
-        )}
 
         {/* Modal de éxito */}
         {successOpen && (
@@ -654,6 +872,84 @@ export default function PayServicesView({ userSettings, onBack }) {
                   <b>Folio:</b> {`SIM-${Date.now().toString().slice(-6)}`}
                 </div>
               </div>
+
+              {/* Información de riesgo en el éxito */}
+              {riesgoActual && (
+                <div
+                  style={{
+                    marginBottom: "12px",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    backgroundColor:
+                      riesgoActual.levelTraducido === "alto"
+                        ? isDark
+                          ? "#3a0d0d"
+                          : "#fef2f2"
+                        : riesgoActual.levelTraducido === "intermedio"
+                        ? isDark
+                          ? "#3b2e05"
+                          : "#fffbeb"
+                        : isDark
+                        ? "#052e1b"
+                        : "#f0fdf4",
+                    border:
+                      riesgoActual.levelTraducido === "alto"
+                        ? "1px solid #fca5a5"
+                        : riesgoActual.levelTraducido === "intermedio"
+                        ? "1px solid #fde68a"
+                        : "1px solid #86efac",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                      margin: "0 0 4px 0",
+                      color: textColor,
+                    }}
+                  >
+                    Nivel de riesgo:{" "}
+                    <span
+                      style={{
+                        color:
+                          riesgoActual.levelTraducido === "alto"
+                            ? "#f87171"
+                            : riesgoActual.levelTraducido === "intermedio"
+                            ? "#eab308"
+                            : "#22c55e",
+                      }}
+                    >
+                      {riesgoActual.levelTraducido.toUpperCase()}
+                    </span>
+                  </p>
+                  {riesgoActual.factors && riesgoActual.factors.length > 0 && (
+                    <div>
+                      <p
+                        style={{
+                          fontSize: "0.8rem",
+                          margin: "2px 0",
+                          color: subtleText,
+                        }}
+                      >
+                        Factores considerados:
+                      </p>
+                      <ul
+                        style={{
+                          fontSize: "0.75rem",
+                          margin: "4px 0 0 0",
+                          paddingLeft: "16px",
+                          color: subtleText,
+                        }}
+                      >
+                        {riesgoActual.factors.map((factor, index) => (
+                          <li key={index}>{factor}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div
                 style={{ display: "flex", gap: 8, justifyContent: "center" }}
               >

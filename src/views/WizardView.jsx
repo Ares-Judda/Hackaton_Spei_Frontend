@@ -1,10 +1,13 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { updateAccessibilityProfile } from "../services/profileService.js";
+import { getAiAccessibility } from "../services/aiService.js";
 import PropTypes from "prop-types";
 import AppWrapper from "../components/AppWrapper";
 import { useFormController } from "../controllers/formController";
+import { useAuth } from "../context/AuthContext.jsx";
 import logo from "../assets/logo.png";
 
-// 🔊 Voz (SSR-safe)
+// 🔊 Función de lectura en voz
 function speakText(text) {
   if (typeof window === "undefined") return;
   if (!("speechSynthesis" in window)) return;
@@ -16,8 +19,49 @@ function speakText(text) {
   } catch { }
 }
 
-const WizardView = ({ onFinish }) => {
-  const { userSettings: rawSettings = {}, updateTheme, saveAnswer } = useFormController();
+async function fetchWithRetry(fetchFn, maxRetries = 3, baseDelay = 1500) {
+  let lastError;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const result = await fetchFn();
+      return result;
+    } catch (error) {
+      lastError = error;
+      if (attempt === maxRetries - 1) throw error;
+      const delay = baseDelay * Math.pow(2, attempt);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  throw lastError;
+}
+
+function mapAiThemeToDb(aiTheme, currentTheme) {
+  const themeMap = {
+    light: "claro",
+    dark: "oscuro",
+    "high-contrast": "alto_contraste",
+    "large-text-high-contrast": "alto_contraste",
+    "standard-accessible": "claro",
+    "voice-assisted": "claro",
+  };
+
+  const normalizedAiTheme = aiTheme?.toLowerCase?.().trim();
+  const normalizedCurrent = currentTheme?.toLowerCase?.().trim();
+
+  if (
+    normalizedCurrent &&
+    !["auto", "default", "ai"].includes(normalizedCurrent)
+  ) {
+    return themeMap[normalizedCurrent] || normalizedCurrent;
+  }
+
+  return themeMap[normalizedAiTheme] || themeMap[normalizedCurrent] || "claro";
+}
+
+const WizardView = ({ onFinish, userSettings: initialSettings }) => {
+  const { user } = useAuth();
+  const { userSettings: rawSettings = {}, updateTheme, saveAnswer } =
+    useFormController(initialSettings);
 
   // Defaults
   const userSettings = {
@@ -35,7 +79,9 @@ const WizardView = ({ onFinish }) => {
   };
 
   const isVoiceActive = !!userSettings.needsVoiceAssistant;
-  const fontSizeStyle = { fontSize: userSettings.fontSize };
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [loadingMsg, setLoadingMsg] = useState("");
 
   useEffect(() => {
     if (isVoiceActive) speakText("Bienvenido al cuestionario de accesibilidad");
@@ -132,18 +178,29 @@ const WizardView = ({ onFinish }) => {
           transition: "background 0.25s ease",
         }}
       >
-        <div
+        <div>
           style={{
             width: "100%",
             maxWidth: "480px",
             display: "flex",
             flexDirection: "column",
             gap: "20px",
-            backgroundColor: "transparent",
             padding: "8px",
           }}
-        >
-          <div
+        </div>
+          <h1
+            style={{
+              fontSize: "1.5rem",
+              fontWeight: "bold",
+              marginBottom: "6px",
+            }}
+          >
+          
+            
+          <h1
+          Cuestionario de Accesibilidad
+           >
+          <p
             style={{
               display: "flex",
               justifyContent: "center",
@@ -441,36 +498,89 @@ const WizardView = ({ onFinish }) => {
             </div>
           </section>
 
-          {/* Finalizar */}
-          <section style={{ textAlign: "center", marginTop: 12 }}>
-            <button
-              onClick={() => onFinish(userSettings)}
-              onMouseEnter={() => isVoiceActive && speakText("Finalizar")}
+              
+            <section
               style={{
                 width: "100%",
-                padding: "14px",
-                borderRadius: 12,
-                border: "none",
-                backgroundColor: accentColor,
-                color: isDark || isHC ? "#00151c" : "#003a63",
-                fontWeight: 800,
-                fontSize: "1rem",
-                cursor: "pointer",
-                transition: "filter 0.2s ease",
+                textAlign: "center",
+                marginTop: "20px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
               }}
-              onMouseOver={(e) => (e.currentTarget.style.filter = "brightness(0.9)")}
-              onMouseOut={(e) => (e.currentTarget.style.filter = "none")}
-              aria-label="Finalizar cuestionario"
             >
-              Finalizar
-            </button>
-          </section>
+              {loadingMsg && !errorMsg && (
+                <div
+                  style={{
+                    border: `1px solid ${accentColor}`,
+                    background: isDark ? "#1e3a5f" : "#dbeafe",
+                    color: isDark ? "#93c5fd" : "#1e40af",
+                    borderRadius: 12,
+                    padding: "10px",
+                    fontSize: ".9rem",
+                  }}
+                >
+                  {loadingMsg}
+                </div>
+              )}
 
-          <footer>
-            <p style={{ fontSize: "0.75rem", opacity: isDark || isHC ? 0.65 : 0.55, textAlign: "center", marginTop: 8 }}>
-              Tu información se usará sólo para personalizar tu experiencia.
-            </p>
-          </footer>
+              {errorMsg && (
+                <div
+                  role="alert"
+                  style={{
+                    border: "1px solid #fca5a5",
+                    background: "#fef2f2",
+                    color: "#991b1b",
+                    borderRadius: 12,
+                    padding: "10px",
+                    fontSize: ".9rem",
+                  }}
+                >
+                  {errorMsg}
+                </div>
+              )}
+
+              <button
+                onClick={handleFinish}
+                disabled={isSubmitting}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  borderRadius: "12px",
+                  border: "none",
+                  backgroundColor: accentColor,
+                  color: "#fff",
+                  fontWeight: "600",
+                  fontSize: "1rem",
+                  cursor: isSubmitting ? "wait" : "pointer",
+                  transition: "all 0.2s ease",
+                  opacity: isSubmitting ? 0.7 : 1,
+                }}
+                onMouseEnter={(e) =>
+                  (e.target.style.backgroundColor = isSubmitting
+                    ? accentColor
+                    : "#005EA6")
+                }
+                onMouseLeave={(e) =>
+                  (e.target.style.backgroundColor = accentColor)
+                }
+              >
+                {isSubmitting ? "Guardando..." : "Finalizar"}
+              </button>
+            </section>
+          <div>
+          
+          <div>
+          <p
+            style={{
+              fontSize: "0.7rem",
+              opacity: 0.6,
+              marginTop: "10px",
+              textAlign: "center",
+            }}
+          >
+            Tu información se usará solo para personalizar tu experiencia.
+          </p>
         </div>
       </div>
     </AppWrapper>
