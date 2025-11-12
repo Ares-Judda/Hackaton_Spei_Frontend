@@ -33,6 +33,7 @@ const HomeView = ({
   goToPay,
   goToAccouts,
   goToCards,
+  goToPreferences
 }) => {
   const theme = userSettings?.theme;
   const isDark = theme === "dark";
