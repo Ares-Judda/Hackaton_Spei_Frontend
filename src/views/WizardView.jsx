@@ -178,7 +178,7 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
           transition: "background 0.25s ease",
         }}
       >
-        <div>
+        <div
           style={{
             width: "100%",
             maxWidth: "480px",
@@ -187,26 +187,8 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
             gap: "20px",
             padding: "8px",
           }}
-        </div>
-          <h1
-            style={{
-              fontSize: "1.5rem",
-              fontWeight: "bold",
-              marginBottom: "6px",
-            }}
-          >
-          
-            
-          <h1
-          Cuestionario de Accesibilidad
-           >
-          <p
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              marginBottom: "12px",
-            }}
-          >
+        >
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px" }}>
             <img
               src={logo}
               alt="Logo B-accesible"
@@ -219,7 +201,6 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
               }}
             />
           </div>
-          {/* Logo simple como en la primera imagen */}
 
 
 
@@ -568,9 +549,7 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
                 {isSubmitting ? "Guardando..." : "Finalizar"}
               </button>
             </section>
-          <div>
-          
-          <div>
+
           <p
             style={{
               fontSize: "0.7rem",
