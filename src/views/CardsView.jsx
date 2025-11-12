@@ -25,12 +25,7 @@ export default function CardsView({ userSettings, onBack }) {
       external: false,
       movements: [
         { id: "m1", date: "2025-11-09", desc: "Amazon MX", amount: -599.0 },
-        {
-          id: "m2",
-          date: "2025-11-06",
-          desc: "Pago recibido (bono)",
-          amount: 1500.0,
-        },
+        { id: "m2", date: "2025-11-06", desc: "Pago recibido (bono)", amount: 1500.0 },
         { id: "m3", date: "2025-11-01", desc: "Spotify", amount: -129.0 },
       ],
     },
@@ -63,12 +58,7 @@ export default function CardsView({ userSettings, onBack }) {
       cvv: "321",
       external: true,
       movements: [
-        {
-          id: "m6",
-          date: "2025-11-07",
-          desc: "Tienda departamental",
-          amount: -1299.9,
-        },
+        { id: "m6", date: "2025-11-07", desc: "Tienda departamental", amount: -1299.9 },
         { id: "m7", date: "2025-11-02", desc: "Devolución", amount: 1299.9 },
       ],
     },
@@ -89,14 +79,14 @@ export default function CardsView({ userSettings, onBack }) {
     alias: "",
     holder: "",
     bank: "",
-    brand: "VISA", // VISA | Mastercard | AMEX
+    brand: "VISA",
     number: "",
     exp: "",
     cvv: "",
     external: false,
   });
 
-  // ===== THEME (coherente con Home/Transfer/Accounts/Receive/Pay) =====
+  // ===== THEME =====
   const theme = userSettings?.theme;
   const isDark = theme === "dark";
   const isHighContrast = theme === "high-contrast";
@@ -113,7 +103,6 @@ export default function CardsView({ userSettings, onBack }) {
 
   const fontSizeBase = userSettings?.fontSize || "0.95rem";
   const fontFamily = userSettings?.font || "system-ui, -apple-system, Segoe UI, Roboto, Arial";
-
 
   // ===== Estilos =====
   const container = {
@@ -209,12 +198,9 @@ export default function CardsView({ userSettings, onBack }) {
     color: textColor,
   });
 
-
   // Hovers/press
-  const onHoverIn = (e) =>
-    (e.currentTarget.style.backgroundColor = buttonHover);
-  const onHoverOut = (e) =>
-    (e.currentTarget.style.backgroundColor = accentColor);
+  const onHoverIn = (e) => (e.currentTarget.style.backgroundColor = buttonHover);
+  const onHoverOut = (e) => (e.currentTarget.style.backgroundColor = accentColor);
   const onPressIn = (e) => (e.currentTarget.style.transform = "scale(0.98)");
   const onPressOut = (e) => (e.currentTarget.style.transform = "scale(1)");
 
@@ -226,8 +212,7 @@ export default function CardsView({ userSettings, onBack }) {
 
   const copyToClipboard = async (text, label) => {
     try {
-      if (navigator.clipboard?.writeText)
-        await navigator.clipboard.writeText(text);
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
       else {
         const ta = document.createElement("textarea");
         ta.value = text;
@@ -237,19 +222,19 @@ export default function CardsView({ userSettings, onBack }) {
         document.body.removeChild(ta);
       }
       setToast({ type: "success", msg: `${label} copiado` });
+      speakText(`${label} copiado`);
       setTimeout(() => setToast(null), 1800);
     } catch {
       setToast({ type: "error", msg: `No se pudo copiar ${label}` });
+      speakText(`No se pudo copiar ${label}`);
       setTimeout(() => setToast(null), 1800);
     }
   };
 
-  // === Formateo + validación MM/AA ===
   const handleExpChange = (value) => {
     const digits = value.replace(/[^\d]/g, "").slice(0, 4);
     let formatted = digits;
-    if (digits.length >= 3)
-      formatted = digits.slice(0, 2) + "/" + digits.slice(2);
+    if (digits.length >= 3) formatted = digits.slice(0, 2) + "/" + digits.slice(2);
     setForm((f) => ({ ...f, exp: formatted }));
   };
 
@@ -260,7 +245,6 @@ export default function CardsView({ userSettings, onBack }) {
     return null;
   };
 
-  // Validación simple
   const validate = () => {
     const errs = {};
     const num = form.number.replace(/\s/g, "");
@@ -280,6 +264,7 @@ export default function CardsView({ userSettings, onBack }) {
     const errs = validate();
     if (Object.keys(errs).length) {
       setToast({ type: "error", msg: "Revisa los campos marcados." });
+      speakText("Revisa los campos marcados");
       return;
     }
     setSubmitting(true);
@@ -314,6 +299,7 @@ export default function CardsView({ userSettings, onBack }) {
         cvv: "",
         external: false,
       });
+      speakText("Tarjeta agregada correctamente");
     } finally {
       setSubmitting(false);
     }
@@ -323,43 +309,44 @@ export default function CardsView({ userSettings, onBack }) {
     if (external) setOtherCards((prev) => prev.filter((c) => c.id !== id));
     else setMyCards((prev) => prev.filter((c) => c.id !== id));
     setToast({ type: "success", msg: "Tarjeta eliminada" });
+    speakText("Tarjeta eliminada");
     setTimeout(() => setToast(null), 1200);
   };
 
   const openDetails = (card) => {
     setDetailCard(card);
     setDetailOpen(true);
+    speakText(`Detalles de ${card.alias}`);
   };
 
   const toMXN = (n) =>
-    new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency: "MXN",
-    }).format(n || 0);
+    new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
+
+  // ===== Lectura en voz =====
+  function speakText(text) {
+    if (typeof window === "undefined") return;
+    if (!("speechSynthesis" in window)) return;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "es-MX";
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  }
 
   // ===== UI =====
   return (
     <div style={container}>
       <div style={shell}>
         <div style={{ position: "relative", marginBottom: "25px" }}>
-          {/* Botón volver en esquina superior izquierda */}
           {onBack && (
             <button
-              onClick={onBack}
-              style={{
-                ...ghostBtn,
-                position: "absolute",
-                top: 0,
-                left: 0,
-              }}
+              onClick={() => { onBack(); speakText("Volver"); }}
+              style={{ ...ghostBtn, position: "absolute", top: 0, left: 0 }}
               onMouseDown={onPressIn}
               onMouseUp={onPressOut}
             >
               ← Volver
             </button>
           )}
-
-          {/* Logo centrado con texto a la derecha */}
           <div
             style={{
               display: "flex",
@@ -378,12 +365,13 @@ export default function CardsView({ userSettings, onBack }) {
                 borderRadius: "50%",
                 objectFit: "cover",
                 backgroundColor: "white",
-                marginBottom: "-15px", // opcional
+                marginBottom: "-15px",
               }}
             />
             <p>B-Accesible</p>
           </div>
         </div>
+
 
         <h1 style={h1}>Mis Tarjetas</h1>
 
