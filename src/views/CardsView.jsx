@@ -25,12 +25,7 @@ export default function CardsView({ userSettings, onBack }) {
       external: false,
       movements: [
         { id: "m1", date: "2025-11-09", desc: "Amazon MX", amount: -599.0 },
-        {
-          id: "m2",
-          date: "2025-11-06",
-          desc: "Pago recibido (bono)",
-          amount: 1500.0,
-        },
+        { id: "m2", date: "2025-11-06", desc: "Pago recibido (bono)", amount: 1500.0 },
         { id: "m3", date: "2025-11-01", desc: "Spotify", amount: -129.0 },
       ],
     },
@@ -63,12 +58,7 @@ export default function CardsView({ userSettings, onBack }) {
       cvv: "321",
       external: true,
       movements: [
-        {
-          id: "m6",
-          date: "2025-11-07",
-          desc: "Tienda departamental",
-          amount: -1299.9,
-        },
+        { id: "m6", date: "2025-11-07", desc: "Tienda departamental", amount: -1299.9 },
         { id: "m7", date: "2025-11-02", desc: "Devolución", amount: 1299.9 },
       ],
     },
@@ -89,14 +79,14 @@ export default function CardsView({ userSettings, onBack }) {
     alias: "",
     holder: "",
     bank: "",
-    brand: "VISA", // VISA | Mastercard | AMEX
+    brand: "VISA",
     number: "",
     exp: "",
     cvv: "",
     external: false,
   });
 
-  // ===== THEME (coherente con Home/Transfer/Accounts/Receive/Pay) =====
+  // ===== THEME =====
   const theme = userSettings?.theme;
   const isDark = theme === "dark";
   const isHighContrast = theme === "high-contrast";
@@ -113,7 +103,6 @@ export default function CardsView({ userSettings, onBack }) {
 
   const fontSizeBase = userSettings?.fontSize || "0.95rem";
   const fontFamily = userSettings?.font || "system-ui, -apple-system, Segoe UI, Roboto, Arial";
-
 
   // ===== Estilos =====
   const container = {
@@ -209,12 +198,9 @@ export default function CardsView({ userSettings, onBack }) {
     color: textColor,
   });
 
-
   // Hovers/press
-  const onHoverIn = (e) =>
-    (e.currentTarget.style.backgroundColor = buttonHover);
-  const onHoverOut = (e) =>
-    (e.currentTarget.style.backgroundColor = accentColor);
+  const onHoverIn = (e) => (e.currentTarget.style.backgroundColor = buttonHover);
+  const onHoverOut = (e) => (e.currentTarget.style.backgroundColor = accentColor);
   const onPressIn = (e) => (e.currentTarget.style.transform = "scale(0.98)");
   const onPressOut = (e) => (e.currentTarget.style.transform = "scale(1)");
 
@@ -226,8 +212,7 @@ export default function CardsView({ userSettings, onBack }) {
 
   const copyToClipboard = async (text, label) => {
     try {
-      if (navigator.clipboard?.writeText)
-        await navigator.clipboard.writeText(text);
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
       else {
         const ta = document.createElement("textarea");
         ta.value = text;
@@ -244,12 +229,11 @@ export default function CardsView({ userSettings, onBack }) {
     }
   };
 
-  // === Formateo + validación MM/AA ===
+  // Formateo + validación MM/AA
   const handleExpChange = (value) => {
     const digits = value.replace(/[^\d]/g, "").slice(0, 4);
     let formatted = digits;
-    if (digits.length >= 3)
-      formatted = digits.slice(0, 2) + "/" + digits.slice(2);
+    if (digits.length >= 3) formatted = digits.slice(0, 2) + "/" + digits.slice(2);
     setForm((f) => ({ ...f, exp: formatted }));
   };
 
@@ -260,7 +244,6 @@ export default function CardsView({ userSettings, onBack }) {
     return null;
   };
 
-  // Validación simple
   const validate = () => {
     const errs = {};
     const num = form.number.replace(/\s/g, "");
@@ -332,10 +315,8 @@ export default function CardsView({ userSettings, onBack }) {
   };
 
   const toMXN = (n) =>
-    new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency: "MXN",
-    }).format(n || 0);
+    new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
+
 
   // ===== UI =====
   return (

@@ -35,6 +35,19 @@ export default function ReceiveView({ userSettings, onBack }) {
   const [qrConcept, setQrConcept] = useState("");
   const [qrUrl, setQrUrl] = useState("");
 
+  // ===== Función de lectura en voz =====
+  function speakText(text) {
+    if (typeof window === "undefined") return;
+    if (!("speechSynthesis" in window)) {
+      console.warn("speechSynthesis no disponible en este navegador.");
+      return;
+    }
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "es-MX";
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  }
+
   // ===== Estilos coherentes con Home/Transfer/Accounts usando userSettings =====
   const theme = userSettings?.theme;
   const isDark = theme === "dark";
@@ -46,8 +59,16 @@ export default function ReceiveView({ userSettings, onBack }) {
   const textColor = isHighContrast ? "#ffffff" : isDark ? "#e2e8f0" : "#1e293b";
   const cardColor = isHighContrast ? "#0a0a0a" : isDark ? "#111827" : "#ffffff";
   const inputBg = isHighContrast ? "#111111" : isDark ? "#0b1220" : "#ffffff";
-  const borderColor = isHighContrast ? "#19e6ff" : isDark ? "#293548" : "#d1d5db";
-  const subtleText = isHighContrast ? "#cccccc" : isDark ? "#94a3b8" : "#6b7280";
+  const borderColor = isHighContrast
+    ? "#19e6ff"
+    : isDark
+    ? "#293548"
+    : "#d1d5db";
+  const subtleText = isHighContrast
+    ? "#cccccc"
+    : isDark
+    ? "#94a3b8"
+    : "#6b7280";
 
   const fontSizeBase = userSettings?.fontSize || "0.95rem";
   const fontFamily =
@@ -70,7 +91,12 @@ export default function ReceiveView({ userSettings, onBack }) {
     flexDirection: "column",
     gap: "18px",
   };
-  const h1 = { fontSize: "1.4rem", fontWeight: 700, margin: 0, textAlign: "center" };
+  const h1 = {
+    fontSize: "1.4rem",
+    fontWeight: 700,
+    margin: 0,
+    textAlign: "center",
+  };
   const label = { fontSize: fontSizeBase, fontWeight: 700, color: textColor };
   const small = { fontSize: "0.85rem", color: subtleText };
 
@@ -168,9 +194,11 @@ export default function ReceiveView({ userSettings, onBack }) {
         document.body.removeChild(ta);
       }
       setToast({ type: "success", msg: `${label} copiado` });
+      speakText(`${label} copiado`);
       setTimeout(dismissToast, 1800);
     } catch {
       setToast({ type: "error", msg: `No se pudo copiar ${label}` });
+      speakText(`No se pudo copiar ${label}`);
       setTimeout(dismissToast, 2000);
     }
   };
@@ -180,6 +208,7 @@ export default function ReceiveView({ userSettings, onBack }) {
 CLABE: ${selected.clabe}
 Cuenta: ${selected.accountNumber}
 Banco: ${selected.bank}`;
+    speakText("Compartiendo datos de transferencia");
     if (navigator.share) {
       try {
         await navigator.share({ title: "Datos para transferencia", text });
@@ -235,8 +264,10 @@ Banco: ${selected.bank}`;
       a.click();
       URL.revokeObjectURL(url);
       a.remove();
+      speakText("QR descargado");
     } catch {
       setToast({ type: "error", msg: "No se pudo descargar el QR" });
+      speakText("No se pudo descargar el QR");
       setTimeout(dismissToast, 1800);
     }
   };
@@ -255,10 +286,11 @@ Banco: ${selected.bank}`;
           text: "Escanea para pagar (demo)",
           files: [file],
         });
+        speakText("QR compartido");
       } else {
         await navigator.share({ title: "QR de cobro", text: qrUrl });
       }
-    } catch { }
+    } catch {}
   };
 
   // ===== Render =====
@@ -266,10 +298,12 @@ Banco: ${selected.bank}`;
     <div style={container}>
       <div style={shell}>
         <div style={{ position: "relative", marginBottom: "25px" }}>
-          {/* Botón volver en esquina superior izquierda */}
           {onBack && (
             <button
-              onClick={onBack}
+              onClick={() => {
+                onBack();
+                speakText("Volviendo atrás");
+              }}
               style={{
                 ...ghostBtn,
                 position: "absolute",
@@ -278,12 +312,12 @@ Banco: ${selected.bank}`;
               }}
               onMouseDown={onPressIn}
               onMouseUp={onPressOut}
+              aria-label="Volver"
             >
               ← Volver
             </button>
           )}
 
-          {/* Logo centrado con texto a la derecha */}
           <div
             style={{
               display: "flex",
@@ -302,7 +336,7 @@ Banco: ${selected.bank}`;
                 borderRadius: "50%",
                 objectFit: "cover",
                 backgroundColor: "white",
-                marginBottom: "-15px", // opcional
+                marginBottom: "-15px",
               }}
             />
             <p>B-Accesible</p>
@@ -311,14 +345,16 @@ Banco: ${selected.bank}`;
 
         <h1 style={h1}>Recibir dinero</h1>
 
-        {/* Cuenta a recibir */}
         <div style={fieldCard}>
           <label style={label}>Cuenta a recibir</label>
           <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
             {accounts.map((acc) => (
               <button
                 key={acc.id}
-                onClick={() => setSelectedId(acc.id)}
+                onClick={() => {
+                  setSelectedId(acc.id);
+                  speakText(`Seleccionaste la cuenta ${acc.alias}`);
+                }}
                 style={chip(selectedId === acc.id)}
                 onMouseDown={onPressIn}
                 onMouseUp={onPressOut}
@@ -513,38 +549,48 @@ Banco: ${selected.bank}`;
           </div>
 
           {/* Opcionales */}
-          <div style={{ display: "grid", gap: 10 }}>
-            <div>
-              <label style={label}>Monto (opcional)</label>
-              <input
-                style={input}
-                inputMode="decimal"
-                placeholder="0.00"
-                value={qrAmount}
-                onChange={(e) =>
-                  setQrAmount(
-                    e.target.value
-                      .replace(",", ".")
-                      .replace(/[^\d.]/g, "")
-                      .slice(0, 12)
-                  )
-                }
-              />
-              <div style={small}>
-                Puedes dejarlo vacío y la otra persona capturará el monto.
-              </div>
+          <div>
+            <label style={label}>Monto (opcional)</label>
+            <input
+              style={input}
+              inputMode="decimal"
+              placeholder="0.00"
+              value={qrAmount}
+              onChange={(e) =>
+                setQrAmount(
+                  e.target.value
+                    .replace(",", ".")
+                    .replace(/[^\d.]/g, "")
+                    .slice(0, 12)
+                )
+              }
+              aria-label="Monto opcional"
+              onFocus={() =>
+                speakText(
+                  "Campo monto opcional. Puedes dejarlo vacío o escribir la cantidad que deseas recibir."
+                )
+              }
+            />
+            <div style={small}>
+              Puedes dejarlo vacío y la otra persona capturará el monto.
             </div>
+          </div>
 
-            <div>
-              <label style={label}>Concepto (opcional)</label>
-              <input
-                style={input}
-                placeholder="Ej. Cena, renta, préstamo"
-                value={qrConcept}
-                onChange={(e) => setQrConcept(e.target.value.slice(0, 60))}
-              />
-              <div style={small}>Este campo también puede ir vacío.</div>
-            </div>
+          <div>
+            <label style={label}>Concepto (opcional)</label>
+            <input
+              style={input}
+              placeholder="Ej. Cena, renta, préstamo"
+              value={qrConcept}
+              onChange={(e) => setQrConcept(e.target.value.slice(0, 60))}
+              aria-label="Concepto opcional"
+              onFocus={() =>
+                speakText(
+                  "Campo concepto opcional. Puedes dejarlo vacío o escribir la razón del cobro."
+                )
+              }
+            />
+            <div style={small}>Este campo también puede ir vacío.</div>
           </div>
 
           <div style={{ marginTop: 6, ...small }}>

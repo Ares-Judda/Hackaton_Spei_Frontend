@@ -3,6 +3,21 @@ import { useTransferController } from "../controllers/useTransferController";
 import logo from "../assets/logo.png";
 import { CiTextAlignCenter } from "react-icons/ci";
 
+// 🔊 Función de lectura accesible
+function speakText(text, userSettings) {
+  if (typeof window === "undefined") return;
+  if (!("speechSynthesis" in window)) return;
+  if (!userSettings?.needsVoiceAssistant && !userSettings?.usesScreenReader) return;
+  try {
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "es-MX";
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  } catch (e) {
+    console.error("Error en lectura de voz:", e);
+  }
+}
+
 export default function TransferView({ userSettings, onBack }) {
   const {
     accounts,
@@ -45,8 +60,8 @@ export default function TransferView({ userSettings, onBack }) {
   const subtleText = isHighContrast ? "#cccccc" : isDark ? "#94a3b8" : "#6b7280";
 
   const fontSizeBase = userSettings?.fontSize || "0.95rem";
-  const fontFamily = userSettings?.font || "system-ui, -apple-system, Segoe UI, Roboto, Arial";
-
+  const fontFamily =
+    userSettings?.font || "system-ui, -apple-system, Segoe UI, Roboto, Arial";
 
   const container = {
     display: "flex",
@@ -95,10 +110,7 @@ export default function TransferView({ userSettings, onBack }) {
 
   const label = { fontSize: fontSizeBase, fontWeight: 600 };
   const hint = { fontSize: `calc(${fontSizeBase} * 0.85)`, color: subtleText };
-  const errorText = {
-    fontSize: `calc(${fontSizeBase} * 0.85)`,
-    color: "#f87171",
-  };
+  const errorText = { fontSize: `calc(${fontSizeBase} * 0.85)`, color: "#f87171" };
 
   const input = {
     width: "100%",
@@ -149,22 +161,35 @@ export default function TransferView({ userSettings, onBack }) {
     padding: "10px",
     fontSize: fontSizeBase,
     border:
-      type === "success" ? "1px solid #86efac" :
-        type === "error" ? "1px solid #fca5a5" :
-          type === "warn" ? "1px solid #fde68a" : `1px solid ${borderColor}`,
+      type === "success"
+        ? "1px solid #86efac"
+        : type === "error"
+        ? "1px solid #fca5a5"
+        : type === "warn"
+        ? "1px solid #fde68a"
+        : `1px solid ${borderColor}`,
     background:
-      type === "success" ? (isDark ? "#052e1b" : "#f0fdf4") :
-        type === "error" ? (isDark ? "#3a0d0d" : "#fef2f2") :
-          type === "warn" ? (isDark ? "#3b2e05" : "#fffbeb") :
-            (isDark ? "#0b1220" : "#eff6ff"),
+      type === "success"
+        ? isDark
+          ? "#052e1b"
+          : "#f0fdf4"
+        : type === "error"
+        ? isDark
+          ? "#3a0d0d"
+          : "#fef2f2"
+        : type === "warn"
+        ? isDark
+          ? "#3b2e05"
+          : "#fffbeb"
+        : isDark
+        ? "#0b1220"
+        : "#eff6ff",
     color: textColor,
   });
 
   // Hovers y clicks
-  const onHoverIn = (e) =>
-    (e.currentTarget.style.backgroundColor = buttonHover);
-  const onHoverOut = (e) =>
-    (e.currentTarget.style.backgroundColor = accentColor);
+  const onHoverIn = (e) => (e.currentTarget.style.backgroundColor = buttonHover);
+  const onHoverOut = (e) => (e.currentTarget.style.backgroundColor = accentColor);
   const onPressIn = (e) => (e.currentTarget.style.transform = "scale(0.98)");
   const onPressOut = (e) => (e.currentTarget.style.transform = "scale(1)");
 
@@ -172,11 +197,15 @@ export default function TransferView({ userSettings, onBack }) {
     if (toast?.type === "success") setSuccessOpen(true);
   }, [toast]);
 
+  // 🔊 Leer encabezado al cargar
+  useEffect(() => {
+    speakText("Transferir dinero", userSettings);
+  }, [userSettings]);
+
   return (
     <div style={container}>
       <div style={shell}>
         <div style={{ position: "relative", marginBottom: "25px" }}>
-          {/* Botón volver en esquina superior izquierda */}
           {onBack && (
             <button
               onClick={onBack}
@@ -188,12 +217,13 @@ export default function TransferView({ userSettings, onBack }) {
               }}
               onMouseDown={onPressIn}
               onMouseUp={onPressOut}
+              onFocus={() => speakText("Volver", userSettings)}
+              onMouseEnter={() => speakText("Volver", userSettings)}
             >
               ← Volver
             </button>
           )}
 
-          {/* Logo centrado con texto a la derecha */}
           <div
             style={{
               display: "flex",
@@ -212,10 +242,10 @@ export default function TransferView({ userSettings, onBack }) {
                 borderRadius: "50%",
                 objectFit: "cover",
                 backgroundColor: "white",
-                marginBottom : "-15px" // opcional
+                marginBottom: "-15px",
               }}
             />
-            <p >B-Accesible</p>
+            <p>B-Accesible</p>
           </div>
         </div>
 
@@ -237,6 +267,18 @@ export default function TransferView({ userSettings, onBack }) {
                 style={input}
                 value={form.sourceAccountId}
                 onChange={(e) => setField("sourceAccountId", e.target.value)}
+                onFocus={() =>
+                  speakText(
+                    `Cuenta origen seleccionada: ${
+                      selectedSourceAccount
+                        ? `${selectedSourceAccount.alias}, saldo disponible ${toMXN(
+                            selectedSourceAccount.balance
+                          )}`
+                        : "ninguna"
+                    }`,
+                    userSettings
+                  )
+                }
               >
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
@@ -246,13 +288,10 @@ export default function TransferView({ userSettings, onBack }) {
               </select>
               {selectedSourceAccount && (
                 <p style={hint}>
-                  Saldo disponible:{" "}
-                  <b>{toMXN(selectedSourceAccount.balance)}</b>
+                  Saldo disponible: <b>{toMXN(selectedSourceAccount.balance)}</b>
                 </p>
               )}
-              {errors.sourceAccountId && (
-                <p style={errorText}>{errors.sourceAccountId}</p>
-              )}
+              {errors.sourceAccountId && <p style={errorText}>{errors.sourceAccountId}</p>}
             </div>
           </fieldset>
 
@@ -260,27 +299,25 @@ export default function TransferView({ userSettings, onBack }) {
           <fieldset style={fieldset}>
             <legend style={legend}>Destinatario</legend>
             <div style={radioRow}>
-              <label
-                style={{ display: "flex", alignItems: "center", gap: "6px" }}
-              >
+              <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <input
                   type="radio"
                   name="mode"
                   value="saved"
                   checked={form.contactMode === "saved"}
                   onChange={() => setField("contactMode", "saved")}
+                  onFocus={() => speakText("Seleccionar contacto guardado", userSettings)}
                 />
                 Contacto guardado
               </label>
-              <label
-                style={{ display: "flex", alignItems: "center", gap: "6px" }}
-              >
+              <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <input
                   type="radio"
                   name="mode"
                   value="new"
                   checked={form.contactMode === "new"}
                   onChange={() => setField("contactMode", "new")}
+                  onFocus={() => speakText("Seleccionar nuevo contacto", userSettings)}
                 />
                 Nuevo contacto
               </label>
@@ -296,6 +333,14 @@ export default function TransferView({ userSettings, onBack }) {
                   style={input}
                   value={form.contactId}
                   onChange={(e) => setField("contactId", e.target.value)}
+                  onFocus={() =>
+                    speakText(
+                      `Contacto seleccionado: ${
+                        selectedContact ? `${selectedContact.alias} - ${selectedContact.clabe}` : "ninguno"
+                      }`,
+                      userSettings
+                    )
+                  }
                 >
                   {savedContacts.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -315,6 +360,7 @@ export default function TransferView({ userSettings, onBack }) {
                   value={form.alias}
                   onChange={(e) => setField("alias", e.target.value)}
                   placeholder="Ej. Juan Pérez"
+                  onFocus={() => speakText("Ingresa alias o nombre del destinatario", userSettings)}
                 />
                 <label htmlFor="clabe" style={label}>
                   CLABE (18 dígitos)
@@ -325,12 +371,10 @@ export default function TransferView({ userSettings, onBack }) {
                   style={input}
                   value={form.clabe}
                   onChange={(e) =>
-                    setField(
-                      "clabe",
-                      e.target.value.replace(/[^\d]/g, "").slice(0, 18)
-                    )
+                    setField("clabe", e.target.value.replace(/[^\d]/g, "").slice(0, 18))
                   }
                   placeholder="__________"
+                  onFocus={() => speakText("Ingresa la CLABE de 18 dígitos del destinatario", userSettings)}
                 />
                 {errors.clabe && <p style={errorText}>{errors.clabe}</p>}
               </div>
@@ -350,6 +394,7 @@ export default function TransferView({ userSettings, onBack }) {
               value={form.amountStr}
               onChange={(e) => setField("amountStr", e.target.value)}
               placeholder="0.00"
+              onFocus={() => speakText(`Ingresa el monto a transferir`, userSettings)}
             />
             {errors.amountStr && <p style={errorText}>{errors.amountStr}</p>}
 
@@ -362,6 +407,7 @@ export default function TransferView({ userSettings, onBack }) {
               value={form.concepto}
               onChange={(e) => setField("concepto", e.target.value)}
               placeholder="Pago de servicios / renta / etc."
+              onFocus={() => speakText(`Ingresa el concepto de la transferencia`, userSettings)}
             />
             {errors.concepto && <p style={errorText}>{errors.concepto}</p>}
           </fieldset>
@@ -405,7 +451,8 @@ export default function TransferView({ userSettings, onBack }) {
                 backgroundColor: accentColor,
                 opacity: submitting ? 0.8 : 1,
               }}
-              onMouseEnter={onHoverIn}
+              onMouseEnter={() => speakText(submitting ? "Procesando..." : "Continuar", userSettings)}
+              onFocus={() => speakText(submitting ? "Procesando..." : "Continuar", userSettings)}
               onMouseLeave={onHoverOut}
               onMouseDown={onPressIn}
               onMouseUp={onPressOut}
