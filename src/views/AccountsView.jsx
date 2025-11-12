@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import logo from "../assets/logo.png";
 import {
   FaWallet,
@@ -10,6 +10,20 @@ import {
   FaQrcode,
   FaShareAlt,
 } from "react-icons/fa";
+
+// 🔊 Función de lectura accesible
+function speakText(text, userSettings) {
+  if (typeof window === "undefined") return;
+  if (!("speechSynthesis" in window)) return;
+  if (!userSettings?.needsVoiceAssistant && !userSettings?.usesScreenReader)
+    return;
+  try {
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "es-MX";
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  } catch {}
+}
 
 export default function AccountsView({ userSettings, onBack }) {
   // ===== Datos simulados =====
@@ -78,8 +92,6 @@ export default function AccountsView({ userSettings, onBack }) {
   const [hideAmounts, setHideAmounts] = useState(false);
   const [toast, setToast] = useState(null); // {type, msg}
   const [successOpen, setSuccessOpen] = useState(false);
-
-  // Modal de transferencia interna
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveForm, setMoveForm] = useState({
     from: accounts[0].id,
@@ -102,7 +114,15 @@ export default function AccountsView({ userSettings, onBack }) {
       style: "currency",
       currency: "MXN",
     }).format(n || 0);
+  const toNumber = (v) => {
+    const x = String(v)
+      .replace(",", ".")
+      .replace(/[^\d.]/g, "");
+    const n = Number.parseFloat(x);
+    return Number.isFinite(n) ? n : 0;
+  };
 
+  // ===== Copiar y compartir =====
   const copyToClipboard = async (text, label) => {
     try {
       if (navigator.clipboard?.writeText)
@@ -116,6 +136,7 @@ export default function AccountsView({ userSettings, onBack }) {
         document.body.removeChild(ta);
       }
       setToast({ type: "success", msg: `${label} copiado al portapapeles` });
+      speakText(`${label} copiado al portapapeles`, userSettings);
       setTimeout(() => setToast(null), 2000);
     } catch {
       setToast({ type: "error", msg: `No se pudo copiar ${label}` });
@@ -124,48 +145,42 @@ export default function AccountsView({ userSettings, onBack }) {
   };
 
   const shareAccount = async () => {
-    const txt = `${sel.alias} - ${sel.bank}
-CLABE: ${sel.clabe}
-Cuenta: ${sel.accountNumber}`;
+    const txt = `${sel.alias} - ${sel.bank}\nCLABE: ${sel.clabe}\nCuenta: ${sel.accountNumber}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: "Datos de cuenta", text: txt });
         setToast({ type: "success", msg: "Compartido" });
+        speakText("Datos compartidos", userSettings);
         setTimeout(() => setToast(null), 1600);
-      } catch {
-        /* cancelado */
-      }
-    } else {
-      copyToClipboard(txt, "Datos de cuenta");
-    }
+      } catch {}
+    } else copyToClipboard(txt, "Datos de cuenta");
   };
 
-  const toNumber = (v) => {
-    const x = String(v)
-      .replace(",", ".")
-      .replace(/[^\d.]/g, "");
-    const n = Number.parseFloat(x);
-    return Number.isFinite(n) ? n : 0;
-  };
-
-  // ===== Estilos consistentes con Home/Transfer (usa userSettings) =====
+  // ===== Estilos =====
   const theme = userSettings?.theme;
   const isDark = theme === "dark";
   const isHighContrast = theme === "high-contrast";
-
   const accentColor = isHighContrast ? "#19e6ff" : "#0078D4";
   const buttonHover = isHighContrast ? "#19e6ff" : "#005EA6";
   const bgColor = isHighContrast ? "#0f172a" : isDark ? "#0f172a" : "#f9fafb";
   const textColor = isHighContrast ? "#ffffff" : isDark ? "#e2e8f0" : "#1e293b";
   const cardColor = isHighContrast ? "#0a0a0a" : isDark ? "#111827" : "#ffffff";
   const inputBg = isHighContrast ? "#111111" : isDark ? "#0b1220" : "#ffffff";
-  const borderColor = isHighContrast ? "#19e6ff" : isDark ? "#293548" : "#d1d5db";
-  const subtleText = isHighContrast ? "#cccccc" : isDark ? "#94a3b8" : "#6b7280";
-
+  const borderColor = isHighContrast
+    ? "#19e6ff"
+    : isDark
+    ? "#293548"
+    : "#d1d5db";
+  const subtleText = isHighContrast
+    ? "#cccccc"
+    : isDark
+    ? "#94a3b8"
+    : "#6b7280";
   const fontSizeBase = userSettings?.fontSize || "0.95rem";
   const fontFamily =
     userSettings?.font || "system-ui, -apple-system, Segoe UI, Roboto, Arial";
 
+  // ===== Layout =====
   const container = {
     display: "flex",
     justifyContent: "center",
@@ -173,10 +188,8 @@ Cuenta: ${sel.accountNumber}`;
     padding: "30px 20px",
     backgroundColor: bgColor,
     color: textColor,
-    transition: "background-color 0.3s ease, color 0.3s ease",
     fontFamily,
   };
-
   const shell = {
     width: "100%",
     maxWidth: "500px",
@@ -184,20 +197,19 @@ Cuenta: ${sel.accountNumber}`;
     flexDirection: "column",
     gap: "18px",
   };
-
   const fieldCard = {
     background: cardColor,
     border: `1px solid ${borderColor}`,
     borderRadius: 18,
     padding: 16,
-    boxShadow: isDark
-      ? "0 4px 10px rgba(0,0,0,0.25)"
-      : "0 4px 10px rgba(0,0,0,0.08)",
   };
-
-  const h1 = { fontSize: "1.4rem", fontWeight: 700, margin: 0, textAlign: "center" };
+  const h1 = {
+    fontSize: "1.4rem",
+    fontWeight: 700,
+    margin: 0,
+    textAlign: "center",
+  };
   const small = { fontSize: "0.85rem", color: subtleText };
-
   const ghostBtn = {
     border: `1px solid ${borderColor}`,
     borderRadius: "12px",
@@ -206,9 +218,7 @@ Cuenta: ${sel.accountNumber}`;
     padding: "10px 14px",
     cursor: "pointer",
     fontSize: fontSizeBase,
-    transition: "background-color 0.3s ease, transform 0.1s ease",
   };
-
   const primaryBtn = {
     border: "none",
     borderRadius: "16px",
@@ -219,10 +229,7 @@ Cuenta: ${sel.accountNumber}`;
     minHeight: "44px",
     cursor: "pointer",
     fontSize: fontSizeBase,
-    boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
-    transition: "background-color 0.3s ease, transform 0.1s ease",
   };
-
   const chip = (active) => ({
     padding: "10px 12px",
     borderRadius: 14,
@@ -234,77 +241,33 @@ Cuenta: ${sel.accountNumber}`;
     placeItems: "center",
     gap: 4,
     color: textColor,
-    transition: "border-color 0.2s ease, transform 0.1s ease",
   });
 
-  const selectStyle = {
-    width: "100%",
-    padding: 12,
-    borderRadius: 12,
-    border: `1px solid ${borderColor}`,
-    background: inputBg,
-    color: textColor,
-    fontSize: fontSizeBase,
-    outline: "none",
-  };
-
-  const inputStyle = {
-    width: "100%",
-    padding: 12,
-    borderRadius: 12,
-    border: `1px solid ${borderColor}`,
-    background: inputBg,
-    color: textColor,
-    fontSize: fontSizeBase,
-    outline: "none",
-  };
-
-  const toastBox = (type) => ({
-    borderRadius: 12,
-    padding: 10,
-    fontSize: "0.95rem",
-    border:
-      type === "success" ? "1px solid #86efac" :
-        type === "error" ? "1px solid #fca5a5" :
-          `1px solid ${borderColor}`,
-    background:
-      type === "success" ? (isDark ? "#052e1b" : "#f0fdf4") :
-        type === "error" ? (isDark ? "#3a0d0d" : "#fef2f2") :
-          (isDark ? "#0b1220" : "#eff6ff"),
-    color: textColor,
-  });
-
-  // Hovers/press como en Home/Transfer
-  const onHoverIn = (e) =>
-    (e.currentTarget.style.backgroundColor = buttonHover);
-  const onHoverOut = (e) =>
-    (e.currentTarget.style.backgroundColor = accentColor);
-  const onPressIn = (e) => (e.currentTarget.style.transform = "scale(0.98)");
-  const onPressOut = (e) => (e.currentTarget.style.transform = "scale(1)");
+  // ===== Lectura inicial =====
+  useEffect(() => {
+    speakText(
+      `Saldo total de todas tus cuentas: ${toMXN(
+        totalBalance
+      )}. Cuenta seleccionada: ${sel.alias}`,
+      userSettings
+    );
+  }, [totalBalance, sel, userSettings]);
 
   // ===== UI =====
   return (
     <div style={container}>
       <div style={shell}>
+        {/* Header */}
         <div style={{ position: "relative", marginBottom: "25px" }}>
-          {/* Botón volver en esquina superior izquierda */}
           {onBack && (
             <button
               onClick={onBack}
-              style={{
-                ...ghostBtn,
-                position: "absolute",
-                top: 0,
-                left: 0,
-              }}
-              onMouseDown={onPressIn}
-              onMouseUp={onPressOut}
+              style={{ ...ghostBtn, position: "absolute", top: 0, left: 0 }}
+              onFocus={() => speakText("Volver", userSettings)}
             >
               ← Volver
             </button>
           )}
-
-          {/* Logo centrado con texto a la derecha */}
           <div
             style={{
               display: "flex",
@@ -318,19 +281,19 @@ Cuenta: ${sel.accountNumber}`;
               src={logo}
               alt="Logo Banco Inclusivo"
               style={{
-                width: "50px",
-                height: "50px",
+                width: 50,
+                height: 50,
                 borderRadius: "50%",
                 objectFit: "cover",
                 backgroundColor: "white",
-                marginBottom: "-15px", // opcional
               }}
             />
             <p>B-Accesible</p>
           </div>
         </div>
-              <h1 style={h1}>Saldo y Cuentas </h1>
-        {/* Tarjeta total + ocultar montos */}
+
+        {/* Saldo total */}
+        <h1 style={h1}>Saldo y Cuentas</h1>
         <div style={fieldCard}>
           <div
             style={{
@@ -343,7 +306,13 @@ Cuenta: ${sel.accountNumber}`;
               <FaWallet /> <div style={{ fontWeight: 700 }}>Saldo total</div>
             </div>
             <button
-              onClick={() => setHideAmounts(!hideAmounts)}
+              onClick={() => {
+                setHideAmounts(!hideAmounts);
+                speakText(
+                  hideAmounts ? "Montos visibles" : "Montos ocultos",
+                  userSettings
+                );
+              }}
               aria-label="Ocultar/mostrar montos"
               style={{
                 border: "none",
@@ -361,7 +330,7 @@ Cuenta: ${sel.accountNumber}`;
           <div style={small}>Suma de todas tus cuentas</div>
         </div>
 
-        {/* Selector de cuenta */}
+        {/* Selector de cuentas */}
         <div style={fieldCard}>
           <div
             style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: 8 }}
@@ -374,15 +343,12 @@ Cuenta: ${sel.accountNumber}`;
             {accounts.map((acc) => (
               <button
                 key={acc.id}
-                onClick={() => setSelectedId(acc.id)}
+                onClick={() => {
+                  setSelectedId(acc.id);
+                  speakText(`Cuenta seleccionada: ${acc.alias}`, userSettings);
+                }}
                 style={chip(selectedId === acc.id)}
                 aria-label={`Seleccionar ${acc.alias}`}
-                onMouseDown={(e) =>
-                  (e.currentTarget.style.transform = "scale(0.98)")
-                }
-                onMouseUp={(e) =>
-                  (e.currentTarget.style.transform = "scale(1)")
-                }
               >
                 <div style={{ fontWeight: 700 }}>{acc.alias}</div>
                 <div style={small}>{acc.accountNumber}</div>
@@ -391,7 +357,7 @@ Cuenta: ${sel.accountNumber}`;
           </div>
         </div>
 
-        {/* Detalle de la cuenta seleccionada */}
+        {/* Detalle cuenta */}
         <div style={fieldCard}>
           <div
             style={{
@@ -428,6 +394,7 @@ Cuenta: ${sel.accountNumber}`;
                     cursor: "pointer",
                     color: accentColor,
                   }}
+                  onFocus={() => speakText("Copiar CLABE", userSettings)}
                 >
                   <FaCopy />
                 </button>
@@ -448,6 +415,9 @@ Cuenta: ${sel.accountNumber}`;
                     cursor: "pointer",
                     color: accentColor,
                   }}
+                  onFocus={() =>
+                    speakText("Copiar número de cuenta", userSettings)
+                  }
                 >
                   <FaCopy />
                 </button>
@@ -460,10 +430,7 @@ Cuenta: ${sel.accountNumber}`;
             <button
               onClick={shareAccount}
               style={ghostBtn}
-              onMouseDown={(e) =>
-                (e.currentTarget.style.transform = "scale(0.98)")
-              }
-              onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+              onFocus={() => speakText("Compartir cuenta", userSettings)}
             >
               <div
                 style={{
@@ -484,10 +451,7 @@ Cuenta: ${sel.accountNumber}`;
                 )
               }
               style={ghostBtn}
-              onMouseDown={(e) =>
-                (e.currentTarget.style.transform = "scale(0.98)")
-              }
-              onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+              onFocus={() => speakText("Copiar datos de cuenta", userSettings)}
             >
               <div
                 style={{
@@ -501,12 +465,14 @@ Cuenta: ${sel.accountNumber}`;
               </div>
             </button>
             <button
-              onClick={() => setMoveOpen(true)}
+              onClick={() => {
+                setMoveOpen(true);
+                speakText("Mover dinero entre cuentas", userSettings);
+              }}
               style={primaryBtn}
-              onMouseEnter={onHoverIn}
-              onMouseLeave={onHoverOut}
-              onMouseDown={onPressIn}
-              onMouseUp={onPressOut}
+              onFocus={() =>
+                speakText("Mover dinero entre cuentas", userSettings)
+              }
             >
               <div
                 style={{
@@ -522,7 +488,7 @@ Cuenta: ${sel.accountNumber}`;
           </div>
         </div>
 
-        {/* Movimientos */}
+        {/* Movimientos recientes */}
         <div style={fieldCard}>
           <div
             style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: 8 }}
@@ -569,17 +535,15 @@ Cuenta: ${sel.accountNumber}`;
 
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
             <button
-              onClick={() =>
+              onClick={() => {
                 setToast({
                   type: "success",
                   msg: "Descargando estado de cuenta...",
-                }) || setTimeout(() => setToast(null), 1600)
-              }
+                });
+                speakText("Descargando estado de cuenta", userSettings);
+                setTimeout(() => setToast(null), 1600);
+              }}
               style={ghostBtn}
-              onMouseDown={(e) =>
-                (e.currentTarget.style.transform = "scale(0.98)")
-              }
-              onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
             >
               <div
                 style={{
@@ -593,17 +557,15 @@ Cuenta: ${sel.accountNumber}`;
               </div>
             </button>
             <button
-              onClick={() =>
+              onClick={() => {
                 setToast({
                   type: "info",
                   msg: "Próximamente QR para depósitos.",
-                }) || setTimeout(() => setToast(null), 1600)
-              }
+                });
+                speakText("Próximamente QR para depósitos", userSettings);
+                setTimeout(() => setToast(null), 1600);
+              }}
               style={ghostBtn}
-              onMouseDown={(e) =>
-                (e.currentTarget.style.transform = "scale(0.98)")
-              }
-              onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
             >
               <div
                 style={{
@@ -620,9 +582,38 @@ Cuenta: ${sel.accountNumber}`;
         </div>
 
         {/* Toast */}
-        {toast && <div style={toastBox(toast.type)}>{toast.msg}</div>}
+        {toast && (
+          <div
+            style={{
+              borderRadius: 12,
+              padding: 10,
+              fontSize: "0.95rem",
+              border:
+                toast.type === "success"
+                  ? "1px solid #86efac"
+                  : toast.type === "error"
+                  ? "1px solid #fca5a5"
+                  : `1px solid ${borderColor}`,
+              background:
+                toast.type === "success"
+                  ? isDark
+                    ? "#052e1b"
+                    : "#f0fdf4"
+                  : toast.type === "error"
+                  ? isDark
+                    ? "#3a0d0d"
+                    : "#fef2f2"
+                  : isDark
+                  ? "#0b1220"
+                  : "#eff6ff",
+              color: textColor,
+            }}
+          >
+            {toast.msg}
+          </div>
+        )}
 
-        {/* Modal mover dinero entre cuentas */}
+        {/* Modal mover dinero */}
         {moveOpen && (
           <div
             role="dialog"
@@ -654,7 +645,6 @@ Cuenta: ${sel.accountNumber}`;
               >
                 Transferir entre mis cuentas
               </h3>
-
               <div style={{ display: "grid", gap: 10 }}>
                 <div>
                   <div style={small}>Cuenta origen</div>
@@ -663,7 +653,15 @@ Cuenta: ${sel.accountNumber}`;
                     onChange={(e) =>
                       setMoveForm((f) => ({ ...f, from: e.target.value }))
                     }
-                    style={selectStyle}
+                    style={{
+                      width: "100%",
+                      padding: 12,
+                      borderRadius: 12,
+                      border: `1px solid ${borderColor}`,
+                      background: inputBg,
+                      color: textColor,
+                      fontSize: fontSizeBase,
+                    }}
                   >
                     {accounts.map((a) => (
                       <option key={a.id} value={a.id}>
@@ -672,7 +670,6 @@ Cuenta: ${sel.accountNumber}`;
                     ))}
                   </select>
                 </div>
-
                 <div>
                   <div style={small}>Cuenta destino</div>
                   <select
@@ -680,7 +677,15 @@ Cuenta: ${sel.accountNumber}`;
                     onChange={(e) =>
                       setMoveForm((f) => ({ ...f, to: e.target.value }))
                     }
-                    style={selectStyle}
+                    style={{
+                      width: "100%",
+                      padding: 12,
+                      borderRadius: 12,
+                      border: `1px solid ${borderColor}`,
+                      background: inputBg,
+                      color: textColor,
+                      fontSize: fontSizeBase,
+                    }}
                   >
                     {accounts
                       .filter((a) => a.id !== moveForm.from)
@@ -691,7 +696,6 @@ Cuenta: ${sel.accountNumber}`;
                       ))}
                   </select>
                 </div>
-
                 <div>
                   <div style={small}>Monto</div>
                   <input
@@ -701,11 +705,18 @@ Cuenta: ${sel.accountNumber}`;
                       setMoveForm((f) => ({ ...f, amountStr: e.target.value }))
                     }
                     placeholder="0.00"
-                    style={inputStyle}
+                    style={{
+                      width: "100%",
+                      padding: 12,
+                      borderRadius: 12,
+                      border: `1px solid ${borderColor}`,
+                      background: inputBg,
+                      color: textColor,
+                      fontSize: fontSizeBase,
+                    }}
                   />
                 </div>
               </div>
-
               <div
                 style={{
                   display: "flex",
@@ -714,16 +725,7 @@ Cuenta: ${sel.accountNumber}`;
                   marginTop: 12,
                 }}
               >
-                <button
-                  onClick={() => setMoveOpen(false)}
-                  style={ghostBtn}
-                  onMouseDown={(e) =>
-                    (e.currentTarget.style.transform = "scale(0.98)")
-                  }
-                  onMouseUp={(e) =>
-                    (e.currentTarget.style.transform = "scale(1)")
-                  }
-                >
+                <button onClick={() => setMoveOpen(false)} style={ghostBtn}>
                   Cancelar
                 </button>
                 <button
@@ -734,11 +736,12 @@ Cuenta: ${sel.accountNumber}`;
                         type: "error",
                         msg: "Ingresa un monto válido.",
                       });
+                      speakText("Monto inválido", userSettings);
                       setTimeout(() => setToast(null), 1600);
                       return;
                     }
                     setSubmitting(true);
-                    await new Promise((r) => setTimeout(r, 900)); // simulación
+                    await new Promise((r) => setTimeout(r, 900));
                     setSubmitting(false);
                     setMoveOpen(false);
                     setSuccessOpen(true);
@@ -749,10 +752,6 @@ Cuenta: ${sel.accountNumber}`;
                     backgroundColor: accentColor,
                     opacity: submitting ? 0.8 : 1,
                   }}
-                  onMouseEnter={onHoverIn}
-                  onMouseLeave={onHoverOut}
-                  onMouseDown={onPressIn}
-                  onMouseUp={onPressOut}
                 >
                   {submitting ? "Procesando..." : "Transferir"}
                 </button>
@@ -761,7 +760,7 @@ Cuenta: ${sel.accountNumber}`;
           </div>
         )}
 
-        {/* Modal de éxito */}
+        {/* Modal éxito */}
         {successOpen && (
           <div
             role="dialog"
@@ -836,16 +835,7 @@ Cuenta: ${sel.accountNumber}`;
               <div
                 style={{ display: "flex", gap: 8, justifyContent: "center" }}
               >
-                <button
-                  onClick={() => setSuccessOpen(false)}
-                  style={ghostBtn}
-                  onMouseDown={(e) =>
-                    (e.currentTarget.style.transform = "scale(0.98)")
-                  }
-                  onMouseUp={(e) =>
-                    (e.currentTarget.style.transform = "scale(1)")
-                  }
-                >
+                <button onClick={() => setSuccessOpen(false)} style={ghostBtn}>
                   Aceptar
                 </button>
               </div>
