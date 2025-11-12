@@ -22,8 +22,6 @@ const HomeView = ({
   goToCards,
   goToPreferences,
   goToLogin,
-  voiceNavActive,
-  setVoiceNavActive,
 }) => {
   const theme = userSettings?.theme;
   const isDark = theme === "dark";
@@ -40,6 +38,27 @@ const HomeView = ({
   const balance = "12,345.67";
   const accountNumber = "1234 5678 9012 3456";
 
+  // Estado de asistencia de voz
+  const [voiceAssistantActive, setVoiceAssistantActive] = useState(() => {
+    const saved = localStorage.getItem("voiceAssistantActive");
+    return saved !== null
+      ? JSON.parse(saved)
+      : !!userSettings?.needsVoiceAssistant;
+  });
+
+  // Toggle asistencia de voz
+  const toggleVoiceAssistant = () => {
+    setVoiceAssistantActive((prev) => {
+      const next = !prev;
+      localStorage.setItem("voiceAssistantActive", JSON.stringify(next));
+      speakText(
+        next ? "Asistencia de voz activada" : "Asistencia de voz desactivada",
+        userSettings
+      );
+      return next;
+    });
+  };
+
   // Activar modo simple automáticamente si usa lector de pantalla
   useEffect(() => {
     if (userSettings?.usesScreenReader) {
@@ -48,13 +67,15 @@ const HomeView = ({
     }
   }, [userSettings?.usesScreenReader, setSimpleMode]);
 
-  // Leer información principal al cargar la vista
+  // Leer información principal al cargar la vista si voz activa
   useEffect(() => {
-    speakText(
-      `Bienvenido, ${userName}. Tu saldo disponible es ${balance} pesos.`,
-      userSettings
-    );
-  }, [userName, balance, userSettings]);
+    if (voiceAssistantActive) {
+      speakText(
+        `Bienvenido, ${userName}. Tu saldo disponible es ${balance} pesos.`,
+        userSettings
+      );
+    }
+  }, [voiceAssistantActive, userName, balance, userSettings]);
 
   // Definición de botones
   const fullActions = [
@@ -216,8 +237,8 @@ const HomeView = ({
           <button
             key={action.label}
             onClick={action.onClick}
-            onFocus={() => speakText(action.label, userSettings)}
-            onMouseEnter={() => speakText(action.label, userSettings)}
+            onFocus={() => voiceAssistantActive && speakText(action.label, userSettings)}
+            onMouseEnter={() => voiceAssistantActive && speakText(action.label, userSettings)}
             style={{
               display: "flex",
               flexDirection: "column",
@@ -241,54 +262,87 @@ const HomeView = ({
         ))}
       </div>
 
-      {/* Botón modo simple/completo */}
-      <div
+      {/* Botones de modo, asistencia de voz y cerrar sesión */}
+      {/* Contenedor de botones */}
+<div
   style={{
     display: "flex",
+    flexDirection: "column",
     gap: "15px",
     marginTop: "25px",
-    flexWrap: "wrap",
-    justifyContent: "center",
+    width: "100%",
+    maxWidth: "500px",
+    alignItems: "center",
   }}
 >
-  {/* Botón Modo */}
-  <button
-    onClick={toggleMode}
-    onFocus={() =>
-      speakText(simpleMode ? "Activar modo completo" : "Activar modo simple", userSettings)
-    }
-    onMouseEnter={() =>
-      speakText(simpleMode ? "Activar modo completo" : "Activar modo simple", userSettings)
-    }
+  {/* Nivel superior: Modo y Asistencia */}
+  <div
     style={{
-      flex: 1,
-      minWidth: "180px",
-      padding: "12px 22px", // mismo padding vertical que el otro botón
-      borderRadius: "12px",
-      border: "none",
-      backgroundColor: buttonBg,
-      color: "#fff",
-      fontWeight: "600",
-      fontSize,
-      cursor: "pointer",
       display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
+      gap: "15px",
+      width: "100%",
     }}
   >
-    {simpleMode ? "🔓 Modo Completo" : "🔒 Modo Simple"}
-  </button>
+    {/* Botón Modo */}
+    <button
+      onClick={toggleMode}
+      onFocus={() =>
+        voiceAssistantActive &&
+        speakText(simpleMode ? "Activar modo completo" : "Activar modo simple", userSettings)
+      }
+      onMouseEnter={() =>
+        voiceAssistantActive &&
+        speakText(simpleMode ? "Activar modo completo" : "Activar modo simple", userSettings)
+      }
+      style={{
+        flex: 1,
+        padding: "12px 22px",
+        borderRadius: "12px",
+        border: "none",
+        backgroundColor: buttonBg,
+        color: "#fff",
+        fontWeight: "600",
+        fontSize,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {simpleMode ? "🔓 Modo Completo" : "🔒 Modo Simple"}
+    </button>
 
-  {/* Botón Cerrar sesión */}
+    {/* Botón Asistencia de voz */}
+    <button
+      onClick={toggleVoiceAssistant}
+      style={{
+        flex: 1,
+        padding: "12px 22px",
+        borderRadius: "12px",
+        border: "none",
+        backgroundColor: voiceAssistantActive ? "#0078D4" : "#6b7280",
+        color: "#fff",
+        fontWeight: "600",
+        fontSize,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {voiceAssistantActive ? "🔊 Asistencia Activada" : "🔇 Asistencia Desactivada"}
+    </button>
+  </div>
+
+  {/* Nivel inferior: Cerrar sesión */}
   <button
     onClick={() => {
       goToLogin();
-      speakText("Regresando al inicio de sesión", userSettings);
+      voiceAssistantActive && speakText("Regresando al inicio de sesión", userSettings);
     }}
     style={{
-      flex: 1, // igualar con el otro botón
-      minWidth: "180px", // igual que el botón de modo
-      padding: "12px 22px", // mismo padding vertical y horizontal
+      width: "100%", // ocupa todo el ancho del contenedor
+      padding: "12px 22px",
       borderRadius: "12px",
       border: "none",
       backgroundColor: buttonBg,
