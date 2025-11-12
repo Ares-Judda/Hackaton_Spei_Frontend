@@ -20,7 +20,7 @@ const LoginView = ({ userSettings, onLoginSuccess }) => {
     onLoginSuccess();
   };
 
-  const isDark = theme === "white";
+  const isDark = theme === "dark";
   const bgColor = isDark ? "#0f172a" : "#f3f4f6";
   const textColor = isDark ? "#e2e8f0" : "#1e293b";
   const borderColor = isDark ? "#334155" : "#d1d5db";

@@ -9,7 +9,7 @@ const App = () => {
   const [hasCompletedWizard, setHasCompletedWizard] = useState(false);
 
   const [userSettings, setUserSettings] = useState({
-    theme: "dark", // valor por defecto
+    theme: "white", // valor por defecto
     font: "Arial",
     fontSize: "16px",
     canReadSmallText: true,
