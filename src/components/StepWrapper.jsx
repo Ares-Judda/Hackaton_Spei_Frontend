@@ -1,4 +1,3 @@
-// src/components/StepWrapper.jsx
 import React from 'react';
 
 const StepWrapper = ({ children, userSettings }) => {
@@ -12,7 +11,8 @@ const StepWrapper = ({ children, userSettings }) => {
   return (
     <div
       style={{
-        minHeight: '100vh',
+        width: '40vw',
+        height: '100vh', // ⚡ body siempre ocupa toda la pantalla
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -22,18 +22,21 @@ const StepWrapper = ({ children, userSettings }) => {
         color: textColor,
         transition: 'all 0.3s ease',
         padding: '20px',
+        boxSizing: 'border-box',
       }}
     >
       <div
         style={{
-          width: '100%',
-          maxWidth: '500px', // ancho similar al HomeView
+          width: '400px',       // ⚡ ancho fijo
+          minHeight: '100px',   // ⚡ altura mínima fija
+          maxHeight: '90vh',    // ⚡ no se salga de la pantalla
+          overflowY: 'auto',    // ⚡ scroll si el contenido crece
           backgroundColor: theme === 'dark' ? '#2c2c2c' : '#fff',
-          padding: '20px',   // reducimos padding para ganar espacio interno
+          padding: '20px',
           borderRadius: '20px',
           boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
           position: 'relative',
-          boxSizing: 'border-box', // ⚡ importante para que padding no reduzca el ancho
+          boxSizing: 'border-box',
         }}
       >
         {children}
