@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import StepWrapper from "../components/StepWrapper";
 
-const LoginView = ({ userSettings, onLoginSuccess }) => {
+const LoginView = ({ userSettings, onLoginSuccess, onGoToSignup }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [theme, setTheme] = useState(userSettings?.theme || "dark");
@@ -182,6 +182,24 @@ const LoginView = ({ userSettings, onLoginSuccess }) => {
             Iniciar sesión
           </button>
         </form>
+
+        <div style={{ marginTop: 8, fontSize: ".9rem", opacity: .9 }}>
+          ¿No tienes cuenta?{" "}
+          <button
+            type="button"
+            onClick={onGoToSignup}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#0078D4",
+              fontWeight: 700,
+              cursor: "pointer",
+              textDecoration: "underline",
+            }}
+          >
+            Crear cuenta
+          </button>
+        </div>
 
         {/* 🔹 Pie */}
         <p

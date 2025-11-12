@@ -7,9 +7,10 @@ import ReceiveView from "./views/ReceiveView";
 import PayServicesView from "./views/PayServicesView";
 import AccountsView from "./views/AccountsView";
 import CardsView from "./views/CardsView";
+import SignupView from "./views/SignupView";
 
 const App = () => {
-  // "login" | "wizard" | "home" | "transfer" | "receive" | "pay" | "accounts" | "cards"
+  // "login" | "signup" | "wizard" | "home" | "transfer" | "receive" | "pay" | "accounts" | "cards"
   const [currentView, setCurrentView] = useState("login");
 
   const [userSettings, setUserSettings] = useState({
@@ -26,7 +27,6 @@ const App = () => {
 
   const [hasCompletedWizard, setHasCompletedWizard] = useState(false);
 
-  // Cargar tema desde localStorage
   useEffect(() => {
     const savedTheme = localStorage.getItem("appTheme");
     if (savedTheme) {
@@ -34,7 +34,6 @@ const App = () => {
     }
   }, []);
 
-  // Al terminar el Wizard
   const handleFinishWizard = (finalSettings) => {
     setUserSettings(finalSettings);
     localStorage.setItem("appTheme", finalSettings.theme);
@@ -42,13 +41,9 @@ const App = () => {
     setCurrentView("home");
   };
 
-  // Al iniciar sesión
   const handleLoginSuccess = () => {
-    if (hasCompletedWizard) {
-      setCurrentView("home");
-    } else {
-      setCurrentView("wizard");
-    }
+    if (hasCompletedWizard) setCurrentView("home");
+    else setCurrentView("wizard");
   };
 
   return (
@@ -57,9 +52,22 @@ const App = () => {
         <LoginView
           userSettings={userSettings}
           onLoginSuccess={handleLoginSuccess}
-          // si quieres forzar mostrar el cuestionario desde login:
           onShowQuestionnaire={() => setCurrentView("wizard")}
           hasSeenQuestionnaire={hasCompletedWizard}
+          // 👇 NUEVO: botón "Crear cuenta"
+          onGoToSignup={() => setCurrentView("signup")}
+        />
+      )}
+
+      {/* 👇 NUEVO: caso de registro */}
+      {currentView === "signup" && (
+        <SignupView
+          userSettings={userSettings}
+          onBackToLogin={() => setCurrentView("login")}
+          onSignupSuccess={() => {
+            // Puedes llevar a wizard o directo al home
+            setCurrentView("wizard"); // o: setCurrentView("home")
+          }}
         />
       )}
 
@@ -84,7 +92,8 @@ const App = () => {
       {currentView === "transfer" && (
         <TransferView
           userSettings={userSettings}
-          onBack={() => setCurrentView("home")} />
+          onBack={() => setCurrentView("home")}
+        />
       )}
 
       {currentView === "receive" && (
