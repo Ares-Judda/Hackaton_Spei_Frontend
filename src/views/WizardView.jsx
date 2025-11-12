@@ -1,354 +1,538 @@
 import React, { useEffect } from "react";
+import PropTypes from "prop-types";
 import AppWrapper from "../components/AppWrapper";
 import { useFormController } from "../controllers/formController";
 
-// 🔊 Función de lectura en voz
+// 🔊 Función de lectura (segura en SSR)
 function speakText(text) {
   if (typeof window === "undefined") return;
-  if (!("speechSynthesis" in window)) return;
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = "es-MX";
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utter);
+  if (!("speechSynthesis" in window)) {
+    console.warn("speechSynthesis no disponible en este navegador.");
+    return;
+  }
+  try {
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "es-MX";
+    // cancela lo anterior y habla
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  } catch (err) {
+    console.warn("Error en speechSynthesis:", err);
+  }
 }
 
 const WizardView = ({ onFinish }) => {
-  const { userSettings, updateTheme, saveAnswer } = useFormController();
-  const fontSizeStyle = { fontSize: userSettings.fontSize };
-  const isVoiceActive = userSettings.needsVoiceAssistant;
+  // controlador (asegúrate que useFormController devuelva userSettings con defaults)
+  const { userSettings: rawSettings = {}, updateTheme, saveAnswer } =
+    useFormController();
 
-  // 🎧 Voz inicial si está activa
+  // aseguramos defaults para evitar errores si algo viene undefined
+  const userSettings = {
+    needsVoiceAssistant: false,
+    name: "",
+    ageRange: "18_30",
+    canReadSmallText: true,
+    usesScreenReader: false,
+    confidence: "medium",
+    literacy: "medium",
+    theme: "light",
+    fontSize: "16px",
+    accentColor: undefined,
+    ...rawSettings,
+  };
+
+  const fontSizeStyle = { fontSize: userSettings.fontSize };
+  const isVoiceActive = !!userSettings.needsVoiceAssistant;
+
+  // 🎧 Voz inicial si está activa; limpieza on unmount
   useEffect(() => {
-    if (userSettings.needsVoiceAssistant) {
+    if (isVoiceActive) {
       speakText("Bienvenido al cuestionario de accesibilidad");
-    } else {
+    } else if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
-  }, [userSettings.needsVoiceAssistant]);
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVoiceActive]);
 
-  // 🎨 Colores iguales al login
-  const theme = userSettings?.theme;
+  // 🎨 Tomar accentColor desde settings (se pedía "jale el color del login")
+  const accentColor = userSettings.accentColor || "#0078D4";
+
+  const theme = userSettings.theme;
   const isDark = theme === "dark";
   const bgColor = isDark ? "#0f172a" : "#f3f4f6";
   const textColor = isDark ? "#e2e8f0" : "#1e293b";
   const borderColor = isDark ? "#334155" : "#d1d5db";
-  const accentColor = "#0078D4";
+
+  // helper para accesibilidad en botones (enter / space)
+  const handleKeyActivate = (e, fn) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      fn();
+    }
+  };
 
   return (
     <AppWrapper userSettings={userSettings}>
       <div
         style={{
-          width: "100%",
           minHeight: "100vh",
+          width: "100%",
           backgroundColor: bgColor,
           color: textColor,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          padding: "40px 20px",
-          transition: "background 0.3s ease",
+          padding: "28px",
+          transition: "background 0.25s ease",
         }}
       >
         <div
           style={{
             width: "100%",
-            maxWidth: "420px", // 👈 más ancho que login, pero mantiene equilibrio
+            maxWidth: "480px",
             display: "flex",
             flexDirection: "column",
-            alignItems: "center",
             gap: "20px",
             backgroundColor: "transparent",
+            padding: "8px",
           }}
         >
-          {/* 🔹 Título */}
-          <h1 style={{ fontSize: "1.5rem", fontWeight: "bold", marginBottom: "6px" }}>
-            Cuestionario de Accesibilidad
-          </h1>
-          <p
-            style={{
-              fontSize: "0.9rem",
-              opacity: 0.85,
-              textAlign: "center",
-              marginBottom: "10px",
-              maxWidth: "320px",
-            }}
-          >
-            Ayúdanos a adaptar tu experiencia bancaria a tus necesidades.
-          </p>
+          {/* Encabezado */}
+          <header style={{ textAlign: "center", marginBottom: "6px" }}>
+            <h1 style={{ fontSize: "1.6rem", fontWeight: 700 }}>
+              Cuestionario de Accesibilidad
+            </h1>
+            <p style={{ fontSize: "0.95rem", opacity: 0.85 }}>
+              Ayúdanos a adaptar tu experiencia bancaria a tus necesidades.
+            </p>
+          </header>
 
-          {/* 🔸 Campos del formulario */}
-          <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "18px" }}>
-            {/* 🗣️ 1. Asistente de voz */}
-            <section>
-              <label style={{ fontWeight: 600 }}>
+          {/* 1. Asistente de voz */}
+          <section aria-labelledby="q-voice">
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h2 id="q-voice" style={{ margin: 0, ...fontSizeStyle }}>
                 ¿Necesitas apoyo de un asistente de voz?
-              </label>
-              <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
-                {["Sí", "No"].map((label, idx) => {
-                  const value = idx === 0;
-                  const active = userSettings.needsVoiceAssistant === value;
-                  return (
-                    <button
-                      key={label}
-                      onClick={() => saveAnswer("needsVoiceAssistant", value)}
-                      onMouseEnter={() => isVoiceActive && speakText(label)}
-                      style={{
-                        flex: 1,
-                        padding: "10px",
-                        borderRadius: "10px",
-                        border: active
-                          ? `2px solid ${accentColor}`
-                          : `1px solid ${borderColor}`,
-                        backgroundColor: active
-                          ? accentColor
-                          : isDark
-                          ? "#1e293b"
-                          : "#fff",
-                        color: active ? "#fff" : textColor,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
+              </h2>
+              {isVoiceActive && (
+                <button
+                  aria-label="Reproducir pregunta asistente de voz"
+                  title="Reproducir pregunta"
+                  onClick={() => speakText("¿Necesitas apoyo de un asistente de voz?")}
+                  style={{
+                    marginLeft: 8,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "1rem",
+                    color: accentColor,
+                  }}
+                >
+                  🔊
+                </button>
+              )}
+            </div>
 
-            {/* 👤 2. Nombre */}
-            <section>
-              <label style={{ fontWeight: 600 }}>¿Cómo te llamamos?</label>
-              <input
-                type="text"
-                placeholder="Ej. María"
-                value={userSettings.name}
-                onChange={(e) => saveAnswer("name", e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: "10px",
-                  border: `1px solid ${borderColor}`,
-                  backgroundColor: isDark ? "#1e293b" : "#f9fafb",
-                  color: textColor,
-                }}
-              />
-            </section>
-
-            {/* 🎂 3. Edad */}
-            <section>
-              <label style={{ fontWeight: 600 }}>Tu rango de edad</label>
-              <select
-                value={userSettings.ageRange}
-                onChange={(e) => saveAnswer("ageRange", e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  borderRadius: "10px",
-                  border: `1px solid ${borderColor}`,
-                  backgroundColor: isDark ? "#1e293b" : "#f9fafb",
-                  color: textColor,
-                }}
-              >
-                <option value="18_30">18 a 30 años</option>
-                <option value="31_50">31 a 50 años</option>
-                <option value="51_60">51 a 60 años</option>
-                <option value="60_plus">Más de 60 años</option>
-              </select>
-            </section>
-
-            {/* 👓 4. Lectura */}
-            <section>
-              <label style={{ fontWeight: 600 }}>¿Te cuesta leer texto pequeño?</label>
-              <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
-                {["Sí, prefiero letra grande", "No, puedo leer bien"].map(
-                  (label, idx) => {
-                    const value = idx === 0 ? false : true;
-                    const active = userSettings.canReadSmallText === value;
-                    return (
-                      <button
-                        key={label}
-                        onClick={() => saveAnswer("canReadSmallText", value)}
-                        onMouseEnter={() => isVoiceActive && speakText(label)}
-                        style={{
-                          flex: 1,
-                          padding: "10px",
-                          borderRadius: "10px",
-                          border: active
-                            ? `2px solid ${accentColor}`
-                            : `1px solid ${borderColor}`,
-                          backgroundColor: active
-                            ? accentColor
-                            : isDark
-                            ? "#1e293b"
-                            : "#fff",
-                          color: active ? "#fff" : textColor,
-                          fontWeight: 600,
-                          cursor: "pointer",
-                        }}
-                      >
-                        {label}
-                      </button>
-                    );
-                  }
-                )}
-              </div>
-            </section>
-
-            {/* 📱 5. Lector de pantalla */}
-            <section>
-              <label style={{ fontWeight: 600 }}>¿Usas lector de pantalla?</label>
-              <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
-                {["Sí", "No"].map((label, idx) => {
-                  const value = idx === 0;
-                  const active = userSettings.usesScreenReader === value;
-                  return (
-                    <button
-                      key={label}
-                      onClick={() => saveAnswer("usesScreenReader", value)}
-                      onMouseEnter={() => isVoiceActive && speakText(label)}
-                      style={{
-                        flex: 1,
-                        padding: "10px",
-                        borderRadius: "10px",
-                        border: active
-                          ? `2px solid ${accentColor}`
-                          : `1px solid ${borderColor}`,
-                        backgroundColor: active
-                          ? accentColor
-                          : isDark
-                          ? "#1e293b"
-                          : "#fff",
-                        color: active ? "#fff" : textColor,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            {/* 🧭 6. Confianza */}
-            <section>
-              <label style={{ fontWeight: 600 }}>
-                ¿Qué tan cómoda te sientes usando apps?
-              </label>
-              <select
-                value={userSettings.confidence}
-                onChange={(e) => saveAnswer("confidence", e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  borderRadius: "10px",
-                  border: `1px solid ${borderColor}`,
-                  backgroundColor: isDark ? "#1e293b" : "#f9fafb",
-                  color: textColor,
-                }}
-              >
-                <option value="low">Me cuesta bastante</option>
-                <option value="medium">Más o menos</option>
-                <option value="high">Muy cómoda</option>
-              </select>
-            </section>
-
-            {/* ✍️ 7. Lectura y escritura */}
-            <section>
-              <label style={{ fontWeight: 600 }}>
-                ¿Qué tan fácil es para ti leer y escribir mensajes?
-              </label>
-              <select
-                value={userSettings.literacy}
-                onChange={(e) => saveAnswer("literacy", e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  borderRadius: "10px",
-                  border: `1px solid ${borderColor}`,
-                  backgroundColor: isDark ? "#1e293b" : "#f9fafb",
-                  color: textColor,
-                }}
-              >
-                <option value="low">Me cuesta leer o escribir mensajes largos</option>
-                <option value="medium">A veces me cuesta</option>
-                <option value="high">No tengo problemas</option>
-              </select>
-            </section>
-
-            {/* 🎨 8. Tema */}
-            <section>
-              <label style={{ fontWeight: 600 }}>Selecciona tema</label>
-              <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
-                {["light", "dark"].map((t) => (
+            <div
+              role="group"
+              aria-label="Seleccionar si necesita asistente de voz"
+              style={{ display: "flex", gap: "10px", marginTop: "10px" }}
+            >
+              {[
+                { label: "Sí", value: true },
+                { label: "No", value: false },
+              ].map((opt) => {
+                const active = userSettings.needsVoiceAssistant === opt.value;
+                return (
                   <div
-                    key={t}
-                    onClick={() => updateTheme(t)}
-                    onMouseEnter={() =>
-                      isVoiceActive && speakText(t === "light" ? "Claro" : "Oscuro")
+                    key={String(opt.value)}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={active}
+                    onClick={() => saveAnswer("needsVoiceAssistant", opt.value)}
+                    onKeyDown={(e) =>
+                      handleKeyActivate(e, () =>
+                        saveAnswer("needsVoiceAssistant", opt.value)
+                      )
                     }
+                    onMouseEnter={() => isVoiceActive && speakText(opt.label)}
+                    onFocus={() => isVoiceActive && speakText(opt.label)}
                     style={{
                       flex: 1,
-                      padding: "16px",
-                      cursor: "pointer",
+                      padding: "12px",
                       borderRadius: "10px",
-                      border:
-                        userSettings.theme === t
-                          ? `2px solid ${accentColor}`
-                          : `1px solid ${borderColor}`,
-                      backgroundColor: t === "light" ? "#fff" : "#1e293b",
-                      color: t === "light" ? "#333" : "#f9fafb",
-                      textAlign: "center",
+                      border: active ? `2px solid ${accentColor}` : `1px solid ${borderColor}`,
+                      backgroundColor: active ? accentColor : isDark ? "#0f172a" : "#fff",
+                      color: active ? "#fff" : textColor,
                       fontWeight: 600,
+                      cursor: "pointer",
+                      textAlign: "center",
+                      ...fontSizeStyle,
+                    }}
+                  >
+                    {opt.label}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* 2. Nombre */}
+          <section aria-labelledby="q-name">
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h2 id="q-name" style={{ margin: 0, ...fontSizeStyle }}>
+                ¿Cómo te llamamos?
+              </h2>
+              {isVoiceActive && (
+                <button
+                  aria-label="Reproducir pregunta nombre"
+                  onClick={() => speakText("¿Cómo te llamamos?")}
+                  style={{ marginLeft: 8, background: "none", border: "none", cursor: "pointer", color: accentColor }}
+                >
+                  🔊
+                </button>
+              )}
+            </div>
+            <input
+              aria-label="Nombre de usuario"
+              placeholder="Ej. María"
+              value={userSettings.name}
+              onChange={(e) => saveAnswer("name", e.target.value)}
+              onFocus={() => isVoiceActive && speakText(`Nombre, actualmente ${userSettings.name || "vacío"}`)}
+              style={{
+                width: "100%",
+                padding: "12px 14px",
+                borderRadius: "10px",
+                border: `1px solid ${borderColor}`,
+                backgroundColor: isDark ? "#0b1220" : "#f9fafb",
+                color: textColor,
+                outline: "none",
+                marginTop: "8px",
+                ...fontSizeStyle,
+              }}
+            />
+          </section>
+
+          {/* 3. Edad */}
+          <section aria-labelledby="q-age">
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h2 id="q-age" style={{ margin: 0, ...fontSizeStyle }}>
+                Tu rango de edad
+              </h2>
+              {isVoiceActive && (
+                <button
+                  aria-label="Reproducir pregunta edad"
+                  onClick={() => speakText("Tu rango de edad")}
+                  style={{ marginLeft: 8, background: "none", border: "none", cursor: "pointer", color: accentColor }}
+                >
+                  🔊
+                </button>
+              )}
+            </div>
+            <select
+              aria-label="Seleccionar rango de edad"
+              value={userSettings.ageRange}
+              onChange={(e) => saveAnswer("ageRange", e.target.value)}
+              onFocus={() => isVoiceActive && speakText(`Rango de edad seleccionado ${userSettings.ageRange}`)}
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: "10px",
+                border: `1px solid ${borderColor}`,
+                backgroundColor: isDark ? "#0b1220" : "#f9fafb",
+                color: textColor,
+                marginTop: "8px",
+                ...fontSizeStyle,
+              }}
+            >
+              <option value="18_30">18 a 30 años</option>
+              <option value="31_50">31 a 50 años</option>
+              <option value="51_60">51 a 60 años</option>
+              <option value="60_plus">Más de 60 años</option>
+            </select>
+          </section>
+
+          {/* 4. Lectura (texto pequeño) */}
+          <section aria-labelledby="q-reading">
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h2 id="q-reading" style={{ margin: 0, ...fontSizeStyle }}>
+                ¿Te cuesta leer texto pequeño?
+              </h2>
+              {isVoiceActive && (
+                <button
+                  aria-label="Reproducir pregunta texto pequeño"
+                  onClick={() => speakText("¿Te cuesta leer texto pequeño?")}
+                  style={{ marginLeft: 8, background: "none", border: "none", cursor: "pointer", color: accentColor }}
+                >
+                  🔊
+                </button>
+              )}
+            </div>
+
+            <div role="group" aria-label="Preferencia de tamaño de letra" style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+              {[
+                { label: "Sí, prefiero letra grande", value: false },
+                { label: "No, puedo leer bien", value: true },
+              ].map((opt) => {
+                const active = userSettings.canReadSmallText === opt.value;
+                return (
+                  <div
+                    key={opt.label}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={active}
+                    onClick={() => saveAnswer("canReadSmallText", opt.value)}
+                    onKeyDown={(e) =>
+                      handleKeyActivate(e, () => saveAnswer("canReadSmallText", opt.value))
+                    }
+                    onMouseEnter={() => isVoiceActive && speakText(opt.label)}
+                    onFocus={() => isVoiceActive && speakText(opt.label)}
+                    style={{
+                      flex: 1,
+                      padding: "12px",
+                      borderRadius: "10px",
+                      border: active ? `2px solid ${accentColor}` : `1px solid ${borderColor}`,
+                      backgroundColor: active ? accentColor : isDark ? "#0b1220" : "#fff",
+                      color: active ? "#fff" : textColor,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      textAlign: "center",
+                      ...fontSizeStyle,
+                    }}
+                  >
+                    {opt.label}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* 5. Lector de pantalla */}
+          <section aria-labelledby="q-screenreader">
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h2 id="q-screenreader" style={{ margin: 0, ...fontSizeStyle }}>
+                ¿Usas lector de pantalla?
+              </h2>
+              {isVoiceActive && (
+                <button
+                  aria-label="Reproducir pregunta lector de pantalla"
+                  onClick={() => speakText("¿Usas lector de pantalla?")}
+                  style={{ marginLeft: 8, background: "none", border: "none", cursor: "pointer", color: accentColor }}
+                >
+                  🔊
+                </button>
+              )}
+            </div>
+
+            <div role="group" aria-label="Usa lector de pantalla" style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+              {[
+                { label: "Sí", value: true },
+                { label: "No", value: false },
+              ].map((opt) => {
+                const active = userSettings.usesScreenReader === opt.value;
+                return (
+                  <div
+                    key={opt.label}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={active}
+                    onClick={() => saveAnswer("usesScreenReader", opt.value)}
+                    onKeyDown={(e) => handleKeyActivate(e, () => saveAnswer("usesScreenReader", opt.value))}
+                    onMouseEnter={() => isVoiceActive && speakText(opt.label)}
+                    onFocus={() => isVoiceActive && speakText(opt.label)}
+                    style={{
+                      flex: 1,
+                      padding: "12px",
+                      borderRadius: "10px",
+                      border: active ? `2px solid ${accentColor}` : `1px solid ${borderColor}`,
+                      backgroundColor: active ? accentColor : isDark ? "#0b1220" : "#fff",
+                      color: active ? "#fff" : textColor,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      textAlign: "center",
+                      ...fontSizeStyle,
+                    }}
+                  >
+                    {opt.label}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* 6. Confianza usando apps */}
+          <section aria-labelledby="q-confidence">
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h2 id="q-confidence" style={{ margin: 0, ...fontSizeStyle }}>
+                ¿Qué tan cómoda te sientes usando apps?
+              </h2>
+              {isVoiceActive && (
+                <button
+                  aria-label="Reproducir pregunta confianza"
+                  onClick={() => speakText("¿Qué tan cómoda te sientes usando apps?")}
+                  style={{ marginLeft: 8, background: "none", border: "none", cursor: "pointer", color: accentColor }}
+                >
+                  🔊
+                </button>
+              )}
+            </div>
+            <select
+              aria-label="Nivel de confianza usando aplicaciones"
+              value={userSettings.confidence}
+              onChange={(e) => saveAnswer("confidence", e.target.value)}
+              onFocus={() => isVoiceActive && speakText(`Nivel de confianza ${userSettings.confidence}`)}
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: "10px",
+                border: `1px solid ${borderColor}`,
+                backgroundColor: isDark ? "#0b1220" : "#f9fafb",
+                color: textColor,
+                marginTop: "8px",
+                ...fontSizeStyle,
+              }}
+            >
+              <option value="low">Me cuesta bastante</option>
+              <option value="medium">Más o menos</option>
+              <option value="high">Muy cómoda</option>
+            </select>
+          </section>
+
+          {/* 7. Lectura y escritura (alfabetización digital) */}
+          <section aria-labelledby="q-literacy">
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h2 id="q-literacy" style={{ margin: 0, ...fontSizeStyle }}>
+                ¿Qué tan fácil es para ti leer y escribir mensajes?
+              </h2>
+              {isVoiceActive && (
+                <button
+                  aria-label="Reproducir pregunta lectura y escritura"
+                  onClick={() => speakText("¿Qué tan fácil es para ti leer y escribir mensajes?")}
+                  style={{ marginLeft: 8, background: "none", border: "none", cursor: "pointer", color: accentColor }}
+                >
+                  🔊
+                </button>
+              )}
+            </div>
+            <select
+              aria-label="Nivel de alfabetización/lectura y escritura"
+              value={userSettings.literacy}
+              onChange={(e) => saveAnswer("literacy", e.target.value)}
+              onFocus={() => isVoiceActive && speakText(`Nivel de lectura seleccionado ${userSettings.literacy}`)}
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: "10px",
+                border: `1px solid ${borderColor}`,
+                backgroundColor: isDark ? "#0b1220" : "#f9fafb",
+                color: textColor,
+                marginTop: "8px",
+                ...fontSizeStyle,
+              }}
+            >
+              <option value="low">Me cuesta leer o escribir mensajes largos</option>
+              <option value="medium">A veces me cuesta</option>
+              <option value="high">No tengo problemas</option>
+            </select>
+          </section>
+
+          {/* 8. Tema (claro / oscuro) */}
+          <section aria-labelledby="q-theme">
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h2 id="q-theme" style={{ margin: 0, ...fontSizeStyle }}>
+                Selecciona tema
+              </h2>
+              {isVoiceActive && (
+                <button
+                  aria-label="Reproducir pregunta tema"
+                  onClick={() => speakText("Selecciona tema")}
+                  style={{ marginLeft: 8, background: "none", border: "none", cursor: "pointer", color: accentColor }}
+                >
+                  🔊
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: "flex", gap: 10, marginTop: "8px" }} role="group" aria-label="Selector de tema">
+              {["light", "dark"].map((t) => {
+                const active = userSettings.theme === t;
+                return (
+                  <div
+                    key={t}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={active}
+                    onClick={() => updateTheme(t)}
+                    onKeyDown={(e) => handleKeyActivate(e, () => updateTheme(t))}
+                    onMouseEnter={() => isVoiceActive && speakText(t === "light" ? "Claro" : "Oscuro")}
+                    onFocus={() => isVoiceActive && speakText(t === "light" ? "Claro" : "Oscuro")}
+                    style={{
+                      flex: 1,
+                      padding: "14px 18px",
+                      borderRadius: "10px",
+                      border: active ? `2px solid ${accentColor}` : `1px solid ${borderColor}`,
+                      backgroundColor: t === "light" ? "#ffffff" : "#0b1220",
+                      color: t === "light" ? "#111827" : "#f9fafb",
+                      textAlign: "center",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      ...fontSizeStyle,
                     }}
                   >
                     {t === "light" ? "Claro" : "Oscuro"}
                   </div>
-                ))}
-              </div>
-            </section>
+                );
+              })}
+            </div>
+          </section>
 
-            {/* ✅ Botón Finalizar */}
-            <section style={{ textAlign: "center", marginTop: "20px" }}>
-              <button
-                onClick={() => onFinish(userSettings)}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  borderRadius: "12px",
-                  border: "none",
-                  backgroundColor: accentColor,
-                  color: "#fff",
-                  fontWeight: "600",
-                  fontSize: "1rem",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => (e.target.style.backgroundColor = "#005EA6")}
-                onMouseLeave={(e) => (e.target.style.backgroundColor = accentColor)}
-              >
-                Finalizar
-              </button>
-            </section>
-          </div>
+          {/* Botones adicionales / incisos extra (si quieres añadir más controles) */}
+          {/* Aquí puedes agregar más incisos si los necesitas. */}
 
-          {/* 🔹 Pie */}
-          <p
-            style={{
-              fontSize: "0.7rem",
-              opacity: 0.6,
-              marginTop: "10px",
-              textAlign: "center",
-            }}
-          >
-            Tu información se usará solo para personalizar tu experiencia.
-          </p>
+          {/* Botón Finalizar */}
+          <section style={{ textAlign: "center", marginTop: 12 }}>
+            <button
+              onClick={() => onFinish(userSettings)}
+              onMouseEnter={() => isVoiceActive && speakText("Finalizar")}
+              style={{
+                width: "100%",
+                padding: "14px",
+                borderRadius: 12,
+                border: "none",
+                backgroundColor: accentColor,
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: "1rem",
+                cursor: "pointer",
+                transition: "background 0.2s ease",
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#005EA6")}
+              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = accentColor)}
+              aria-label="Finalizar cuestionario"
+            >
+              Finalizar
+            </button>
+          </section>
+
+          {/* Pie */}
+          <footer>
+            <p style={{ fontSize: "0.75rem", opacity: 0.65, textAlign: "center", marginTop: 8 }}>
+              Tu información se usará sólo para personalizar tu experiencia.
+            </p>
+          </footer>
         </div>
       </div>
     </AppWrapper>
   );
+};
+
+WizardView.propTypes = {
+  onFinish: PropTypes.func.isRequired,
 };
 
 export default WizardView;
