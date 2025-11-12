@@ -21,10 +21,9 @@ const HomeView = ({
   goToAccouts,
   goToCards,
   goToPreferences,
+  goToLogin,
   voiceNavActive,
   setVoiceNavActive,
-  setUserSettings,
-  goToLogin,
 }) => {
   const theme = userSettings?.theme;
   const isDark = theme === "dark";
@@ -49,86 +48,35 @@ const HomeView = ({
     }
   }, [userSettings?.usesScreenReader, setSimpleMode]);
 
+  // Leer información principal al cargar la vista
   useEffect(() => {
-    if (!voiceNavActive) {
-      setVoiceNavActive(true);
-      setUserSettings((prev) => {
-        const updated = { ...prev, usesScreenReader: true };
-        localStorage.setItem("userSettings", JSON.stringify(updated));
-        return updated;
-      });
-    }
-
-    // Leer bienvenida
     speakText(
       `Bienvenido, ${userName}. Tu saldo disponible es ${balance} pesos.`,
       userSettings
     );
-  }, []);
+  }, [userName, balance, userSettings]);
 
+  // Definición de botones
   const fullActions = [
-    {
-      icon: <FaArrowDown />,
-      label: "Recibir dinero",
-      onClick: () => goToReceive(),
-    },
-    {
-      icon: <FaArrowUp />,
-      label: "Enviar dinero",
-      onClick: () => goToTransfer(),
-    },
-    {
-      icon: <FaWallet />,
-      label: "Consultar saldos",
-      onClick: () => goToAccouts(),
-    },
-    {
-      icon: <FaMoneyBillWave />,
-      label: "Pagar servicios",
-      onClick: () => goToPay(),
-    },
-    {
-      icon: <FaCreditCard />,
-      label: "Mis Tarjetas",
-      onClick: () => goToCards(),
-    },
-    {
-      icon: <FaChartLine />,
-      label: "Ahorrar e invertir",
-      onClick: () => alert("Ver inversiones"),
-    },
-    {
-      icon: <FaCog />,
-      label: "Preferencias",
-      onClick: () => goToPreferences(),
-    },
+    { icon: <FaArrowDown />, label: "Recibir dinero", onClick: () => goToReceive() },
+    { icon: <FaArrowUp />, label: "Enviar dinero", onClick: () => goToTransfer() },
+    { icon: <FaWallet />, label: "Consultar saldos", onClick: () => goToAccouts() },
+    { icon: <FaMoneyBillWave />, label: "Pagar servicios", onClick: () => goToPay() },
+    { icon: <FaCreditCard />, label: "Mis Tarjetas", onClick: () => goToCards() },
+    { icon: <FaChartLine />, label: "Ahorrar e invertir", onClick: () => alert("Ver inversiones") },
+    { icon: <FaCog />, label: "Preferencias", onClick: () => goToPreferences() },
   ];
 
   const simpleActions = [
-    {
-      icon: <FaArrowDown />,
-      label: "Recibir dinero",
-      onClick: () => goToReceive(),
-    },
-    {
-      icon: <FaArrowUp />,
-      label: "Enviar dinero",
-      onClick: () => goToTransfer(),
-    },
-    {
-      icon: <FaWallet />,
-      label: "Consultar saldos",
-      onClick: () => goToAccouts(),
-    },
-    {
-      icon: <FaMoneyBillWave />,
-      label: "Pagar servicios",
-      onClick: () => goToPay(),
-    },
+    { icon: <FaArrowDown />, label: "Recibir dinero", onClick: () => goToReceive() },
+    { icon: <FaArrowUp />, label: "Enviar dinero", onClick: () => goToTransfer() },
+    { icon: <FaWallet />, label: "Consultar saldos", onClick: () => goToAccouts() },
+    { icon: <FaMoneyBillWave />, label: "Pagar servicios", onClick: () => goToPay() },
   ];
 
   const actions = simpleMode ? simpleActions : fullActions;
 
+  // Cambiar modo simple/completo
   const toggleMode = () => {
     setSimpleMode((prev) => {
       const next = !prev;
@@ -139,23 +87,6 @@ const HomeView = ({
       );
       return next;
     });
-  };
-
-  const toggleVoice = () => {
-    const nextState = !(voiceNavActive && userSettings.usesScreenReader);
-
-    // Actualizar estados de voz y lector de pantalla
-    setVoiceNavActive(nextState);
-    setUserSettings((prev) => {
-      const updated = { ...prev, usesScreenReader: nextState };
-      localStorage.setItem("userSettings", JSON.stringify(updated));
-      return updated;
-    });
-
-    speakText(
-      nextState ? "Asistente de voz activado" : "Asistente de voz desactivado",
-      userSettings
-    );
   };
 
   return (
@@ -226,9 +157,7 @@ const HomeView = ({
               : isDark
               ? "linear-gradient(135deg, #1e3a8a, #3b82f6)"
               : "linear-gradient(135deg, #0078D4, #60a5fa)",
-            border: isHighContrast
-              ? `2px solid #19e6ff`
-              : "1px solid rgba(0,0,0,0.25)",
+            border: isHighContrast ? `2px solid #19e6ff` : "1px solid rgba(0,0,0,0.25)",
             borderRadius: 18,
             padding: "24px 28px",
             color: "#fff",
@@ -306,83 +235,76 @@ const HomeView = ({
               gap: "10px",
             }}
           >
-            <span style={{ fontSize: `calc(${fontSize} * 1.8)` }}>
-              {action.icon}
-            </span>
+            <span style={{ fontSize: `calc(${fontSize} * 1.8)` }}>{action.icon}</span>
             {action.label}
           </button>
         ))}
       </div>
 
-      {/* Botones modo simple + asistente de voz lado a lado */}
+      {/* Botón modo simple/completo */}
       <div
-        style={{
-          display: "flex",
-          gap: "15px",
-          marginTop: "25px",
-          flexWrap: "wrap",
-          justifyContent: "center",
-        }}
-      >
-        {/* Botón Modo */}
-        <button
-          onClick={toggleMode}
-          onFocus={() =>
-            speakText(
-              simpleMode ? "Activar modo completo" : "Activar modo simple",
-              userSettings
-            )
-          }
-          onMouseEnter={() =>
-            speakText(
-              simpleMode ? "Activar modo completo" : "Activar modo simple",
-              userSettings
-            )
-          }
-          style={{
-            flex: 1,
-            minWidth: "180px",
-            padding: "12px 22px", // mismo padding vertical que el otro botón
-            borderRadius: "12px",
-            border: "none",
-            backgroundColor: buttonBg,
-            color: "#fff",
-            fontWeight: "600",
-            fontSize,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {simpleMode ? "🔓 Modo Completo" : "🔒 Modo Simple"}
-        </button>
+  style={{
+    display: "flex",
+    gap: "15px",
+    marginTop: "25px",
+    flexWrap: "wrap",
+    justifyContent: "center",
+  }}
+>
+  {/* Botón Modo */}
+  <button
+    onClick={toggleMode}
+    onFocus={() =>
+      speakText(simpleMode ? "Activar modo completo" : "Activar modo simple", userSettings)
+    }
+    onMouseEnter={() =>
+      speakText(simpleMode ? "Activar modo completo" : "Activar modo simple", userSettings)
+    }
+    style={{
+      flex: 1,
+      minWidth: "180px",
+      padding: "12px 22px", // mismo padding vertical que el otro botón
+      borderRadius: "12px",
+      border: "none",
+      backgroundColor: buttonBg,
+      color: "#fff",
+      fontWeight: "600",
+      fontSize,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    }}
+  >
+    {simpleMode ? "🔓 Modo Completo" : "🔒 Modo Simple"}
+  </button>
 
-        {/* Botón Cerrar sesión */}
-        <button
-          onClick={() => {
-            goToLogin();
-            speakText("Regresando al inicio de sesión", userSettings);
-          }}
-          style={{
-            flex: 1, // igualar con el otro botón
-            minWidth: "180px", // igual que el botón de modo
-            padding: "12px 22px", // mismo padding vertical y horizontal
-            borderRadius: "12px",
-            border: "none",
-            backgroundColor: buttonBg,
-            color: "#fff",
-            fontWeight: "600",
-            fontSize,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          Cerrar Sesión
-        </button>
-      </div>
+  {/* Botón Cerrar sesión */}
+  <button
+    onClick={() => {
+      goToLogin();
+      speakText("Regresando al inicio de sesión", userSettings);
+    }}
+    style={{
+      flex: 1, // igualar con el otro botón
+      minWidth: "180px", // igual que el botón de modo
+      padding: "12px 22px", // mismo padding vertical y horizontal
+      borderRadius: "12px",
+      border: "none",
+      backgroundColor: buttonBg,
+      color: "#fff",
+      fontWeight: "600",
+      fontSize,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    }}
+  >
+    Cerrar Sesión
+  </button>
+</div>
+
 
       {/* Pie de página */}
       <p
