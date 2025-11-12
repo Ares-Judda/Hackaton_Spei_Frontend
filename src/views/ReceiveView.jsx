@@ -167,8 +167,8 @@ Banco: ${selected.bank}`;
     setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${data}&cb=${cacheBust}`);
   };
 
-  useEffect(() => { generateQr(); /* mount */ }, []);
-  useEffect(() => { generateQr(); /* deps */ }, [selectedId, qrAmount, qrConcept]);
+  useEffect(() => { generateQr(); }, []);
+  useEffect(() => { generateQr(); }, [selectedId, qrAmount, qrConcept]);
 
   const downloadQr = async () => {
     if (!qrUrl) return;
@@ -207,8 +207,8 @@ Banco: ${selected.bank}`;
             <button
               onClick={onBack}
               style={ghostBtn}
-              onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
-              onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+              onMouseDown={onPressIn}
+              onMouseUp={onPressOut}
             >
               ← Volver
             </button>
@@ -225,12 +225,12 @@ Banco: ${selected.bank}`;
                 key={acc.id}
                 onClick={() => setSelectedId(acc.id)}
                 style={chip(selectedId === acc.id)}
-                onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
-                onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                onMouseDown={onPressIn}
+                onMouseUp={onPressOut}
                 aria-label={`Seleccionar ${acc.alias}`}
               >
-                <div style={{ fontWeight: 700 }}>{acc.alias}</div>
-                <div style={small}>{acc.accountNumber}</div>
+                <div style={{ fontWeight: 700, fontSize: fontSizeBase }}>{acc.alias}</div>
+                <div style={{ fontSize: fontSizeBase }}>{acc.accountNumber}</div>
               </button>
             ))}
           </div>
@@ -238,32 +238,34 @@ Banco: ${selected.bank}`;
 
         {/* Datos principales */}
         <div style={fieldCard}>
-          <div style={{ fontSize: "0.95rem", fontWeight: 700 }}>{selected.name}</div>
+          <div style={{ fontSize: fontSizeBase, fontWeight: 700 }}>{selected.name}</div>
           <div style={small}>{selected.bank}</div>
 
           <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
+            {/* CLABE */}
             <div>
               <div style={small}>CLABE</div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <div style={{ fontWeight: 700, letterSpacing: 1 }}>{selected.clabe}</div>
+                <div style={{ fontWeight: 700, letterSpacing: 1, fontSize: fontSizeBase }}>{selected.clabe}</div>
                 <button
                   onClick={() => copyToClipboard(selected.clabe, "CLABE")}
                   aria-label="Copiar CLABE"
-                  style={{ border: "none", background: "transparent", cursor: "pointer", color: accentColor }}
+                  style={{ border: "none", background: "transparent", cursor: "pointer", color: accentColor, fontSize: fontSizeBase }}
                 >
                   <FaCopy />
                 </button>
               </div>
             </div>
 
+            {/* Número de cuenta */}
             <div>
               <div style={small}>Número de cuenta</div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <div style={{ fontWeight: 700 }}>{selected.accountNumber}</div>
+                <div style={{ fontWeight: 700, fontSize: fontSizeBase }}>{selected.accountNumber}</div>
                 <button
                   onClick={() => copyToClipboard(selected.accountNumber, "Número de cuenta")}
                   aria-label="Copiar número de cuenta"
-                  style={{ border: "none", background: "transparent", cursor: "pointer", color: accentColor }}
+                  style={{ border: "none", background: "transparent", cursor: "pointer", color: accentColor, fontSize: fontSizeBase }}
                 >
                   <FaCopy />
                 </button>
@@ -280,8 +282,8 @@ Banco: ${selected.bank}`;
                 )
               }
               style={ghostBtn}
-              onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
-              onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+              onMouseDown={onPressIn}
+              onMouseUp={onPressOut}
             >
               Copiar todo
             </button>
@@ -344,8 +346,8 @@ Banco: ${selected.bank}`;
                 type="button"
                 style={ghostBtn}
                 disabled={!qrUrl}
-                onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
-                onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                onMouseDown={onPressIn}
+                onMouseUp={onPressOut}
               >
                 <FaDownload style={{ marginRight: 6 }} /> Descargar
               </button>
@@ -355,8 +357,8 @@ Banco: ${selected.bank}`;
                   type="button"
                   style={ghostBtn}
                   disabled={!qrUrl}
-                  onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
-                  onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                  onMouseDown={onPressIn}
+                  onMouseUp={onPressOut}
                 >
                   <FaShareAlt style={{ marginRight: 6 }} /> Compartir QR
                 </button>
@@ -364,7 +366,7 @@ Banco: ${selected.bank}`;
             </div>
           </div>
 
-          {/* Opcionales SIN obligar */}
+          {/* Opcionales */}
           <div style={{ display: "grid", gap: 10 }}>
             <div>
               <label style={label}>Monto (opcional)</label>

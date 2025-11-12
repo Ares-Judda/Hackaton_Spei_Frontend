@@ -9,7 +9,6 @@ import AccountsView from "./views/AccountsView";
 import CardsView from "./views/CardsView";
 
 const App = () => {
-  // "login" | "wizard" | "home" | "transfer" | "receive" | "pay" | "accounts" | "cards"
   const [currentView, setCurrentView] = useState("login");
 
   const [userSettings, setUserSettings] = useState({
@@ -20,24 +19,26 @@ const App = () => {
     usesScreenReader: false,
     confidence: "medium",
     literacy: "medium",
+    needsVoiceAssistant: false,
     name: "",
     ageRange: "18_30",
   });
 
   const [hasCompletedWizard, setHasCompletedWizard] = useState(false);
 
-  // Cargar tema desde localStorage
+  // 🔄 Cargar configuraciones desde localStorage al iniciar
   useEffect(() => {
-    const savedTheme = localStorage.getItem("appTheme");
-    if (savedTheme) {
-      setUserSettings((prev) => ({ ...prev, theme: savedTheme }));
+    const savedSettings = localStorage.getItem("userSettings");
+    if (savedSettings) {
+      setUserSettings(JSON.parse(savedSettings));
+      setHasCompletedWizard(true);
     }
   }, []);
 
   // Al terminar el Wizard
   const handleFinishWizard = (finalSettings) => {
     setUserSettings(finalSettings);
-    localStorage.setItem("appTheme", finalSettings.theme);
+    localStorage.setItem("userSettings", JSON.stringify(finalSettings)); // guardamos todo
     setHasCompletedWizard(true);
     setCurrentView("home");
   };
@@ -57,7 +58,6 @@ const App = () => {
         <LoginView
           userSettings={userSettings}
           onLoginSuccess={handleLoginSuccess}
-          // si quieres forzar mostrar el cuestionario desde login:
           onShowQuestionnaire={() => setCurrentView("wizard")}
           hasSeenQuestionnaire={hasCompletedWizard}
         />
@@ -66,6 +66,7 @@ const App = () => {
       {currentView === "wizard" && (
         <WizardView
           userSettings={userSettings}
+          setUserSettings={setUserSettings} // pasamos setter
           onFinish={handleFinishWizard}
         />
       )}
@@ -82,37 +83,23 @@ const App = () => {
       )}
 
       {currentView === "transfer" && (
-        <TransferView
-          userSettings={userSettings}
-          onBack={() => setCurrentView("home")} />
+        <TransferView userSettings={userSettings} onBack={() => setCurrentView("home")} />
       )}
 
       {currentView === "receive" && (
-        <ReceiveView
-          userSettings={userSettings}
-          onBack={() => setCurrentView("home")}
-        />
+        <ReceiveView userSettings={userSettings} onBack={() => setCurrentView("home")} />
       )}
 
       {currentView === "pay" && (
-        <PayServicesView
-          userSettings={userSettings}
-          onBack={() => setCurrentView("home")}
-        />
+        <PayServicesView userSettings={userSettings} onBack={() => setCurrentView("home")} />
       )}
 
       {currentView === "accounts" && (
-        <AccountsView
-          userSettings={userSettings}
-          onBack={() => setCurrentView("home")}
-        />
+        <AccountsView userSettings={userSettings} onBack={() => setCurrentView("home")} />
       )}
 
       {currentView === "cards" && (
-        <CardsView
-          userSettings={userSettings}
-          onBack={() => setCurrentView("home")}
-        />
+        <CardsView userSettings={userSettings} onBack={() => setCurrentView("home")} />
       )}
     </>
   );
