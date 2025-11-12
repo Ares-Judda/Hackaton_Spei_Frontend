@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from "react";
 import StepWrapper from "../components/StepWrapper";
+import { useAuth } from "../context/AuthContext";
 
 const LoginView = ({ userSettings, onLoginSuccess }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [theme, setTheme] = useState(userSettings?.theme || "dark");
+
+  const { login, loading } = useAuth();
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("appTheme");
@@ -15,9 +19,21 @@ const LoginView = ({ userSettings, onLoginSuccess }) => {
     localStorage.setItem("appTheme", theme);
   }, [theme]);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    onLoginSuccess();
+    setError(null);
+
+    try {
+      await login(email, password);
+
+      onLoginSuccess();
+    } catch (err) {
+      if (err && err.message) {
+        setError(err.message);
+      } else {
+        setError("Error inesperado. Inténtalo de nuevo.");
+      }
+    }
   };
 
   const isDark = theme === "dark";
@@ -28,7 +44,6 @@ const LoginView = ({ userSettings, onLoginSuccess }) => {
 
   return (
     <StepWrapper userSettings={{ ...userSettings, theme }}>
-      {/* 🔹 Contenedor principal sin recuadro */}
       <div
         style={{
           width: "100%",
@@ -41,7 +56,7 @@ const LoginView = ({ userSettings, onLoginSuccess }) => {
           justifyContent: "center",
           gap: "18px",
           padding: "32px 28px",
-          backgroundColor: "transparent", // 👈 sin card
+          backgroundColor: "transparent",
         }}
       >
         {/* 🔹 Logo */}
@@ -162,24 +177,49 @@ const LoginView = ({ userSettings, onLoginSuccess }) => {
             />
           </div>
 
+          {/* 👈 4. Mostrar error si existe */}
+          {error && (
+            <div
+              style={{
+                color: "#ef4444", // (rojo)
+                fontSize: "0.85rem",
+                textAlign: "center",
+                padding: "8px",
+                backgroundColor: isDark
+                  ? "rgba(239, 68, 68, 0.1)"
+                  : "rgba(239, 68, 68, 0.1)",
+                borderRadius: "8px",
+                border: `1px solid ${isDark ? "#ef4444" : "#f87171"}`,
+              }}
+            >
+              {error}
+            </div>
+          )}
+
           {/* ✅ Botón */}
           <button
             type="submit"
+            disabled={loading} // 👈 5. Deshabilitar botón mientras carga
             style={{
               width: "100%",
               padding: "12px",
               borderRadius: "12px",
               border: "none",
-              backgroundColor: accentColor,
+              backgroundColor: loading ? "#555" : accentColor, // Cambia color si carga
               color: "white",
               fontWeight: "600",
-              cursor: "pointer",
+              cursor: loading ? "wait" : "pointer", // Cambia cursor
               transition: "all 0.2s ease",
             }}
-            onMouseEnter={(e) => (e.target.style.backgroundColor = "#005EA6")}
-            onMouseLeave={(e) => (e.target.style.backgroundColor = accentColor)}
+            onMouseEnter={(e) =>
+              (e.target.style.backgroundColor = loading ? "#555" : "#005EA6")
+            }
+            onMouseLeave={(e) =>
+              (e.target.style.backgroundColor = loading ? "#555" : accentColor)
+            }
           >
-            Iniciar sesión
+            {/* 👈 6. Mostrar texto diferente si carga */}
+            {loading ? "Ingresando..." : "Iniciar sesión"}
           </button>
         </form>
 
