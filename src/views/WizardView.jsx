@@ -18,15 +18,18 @@ function speakText(text) {
 const WizardView = ({ onFinish }) => {
   const { userSettings, updateTheme, saveAnswer } = useFormController();
 
-  // Estilo dinámico según tamaño de letra
   const fontSizeStyle = { fontSize: userSettings.fontSize };
 
-  // Auto-lectura si usa lector de pantalla
+  // Control automático de lectura según lector de pantalla
   useEffect(() => {
-    if (userSettings.usesScreenReader) {
+    if (userSettings.usesScreenReader !== false) {
       speakText('Bienvenido al cuestionario de accesibilidad');
+    } else {
+      window.speechSynthesis.cancel();
     }
   }, [userSettings.usesScreenReader]);
+
+  const isScreenReaderActive = userSettings.usesScreenReader !== false;
 
   return (
     <AppWrapper userSettings={userSettings}>
@@ -43,19 +46,27 @@ const WizardView = ({ onFinish }) => {
         <div>
           <h2 style={fontSizeStyle}>
             ¿Cómo te llamamos?
-            <button
-              onClick={() => speakText('¿Cómo te llamamos?')}
-              style={{ marginLeft: '10px', fontSize: '0.8em', padding: '2px 6px' }}
-            >
-              🔊
-            </button>
+            {isScreenReaderActive && (
+              <button
+                onClick={() => speakText('¿Cómo te llamamos?')}
+                style={{ marginLeft: '10px', fontSize: '0.8em', padding: '2px 6px' }}
+              >
+                🔊
+              </button>
+            )}
           </h2>
           <input
             type="text"
             placeholder="Ej. María"
             value={userSettings.name}
             onChange={(e) => saveAnswer('name', e.target.value)}
-            style={{ ...fontSizeStyle, padding: 'calc(6px + 0.3em)', borderRadius: '10px', border: '1px solid #ccc', width: '100%' }}
+            style={{
+              ...fontSizeStyle,
+              padding: 'calc(6px + 0.3em)',
+              borderRadius: '10px',
+              border: '1px solid #ccc',
+              width: '100%',
+            }}
           />
         </div>
 
@@ -63,17 +74,25 @@ const WizardView = ({ onFinish }) => {
         <div>
           <h2 style={fontSizeStyle}>
             Tu rango de edad
-            <button
-              onClick={() => speakText('Tu rango de edad')}
-              style={{ marginLeft: '10px', fontSize: '0.8em', padding: '2px 6px' }}
-            >
-              🔊
-            </button>
+            {isScreenReaderActive && (
+              <button
+                onClick={() => speakText('Tu rango de edad')}
+                style={{ marginLeft: '10px', fontSize: '0.8em', padding: '2px 6px' }}
+              >
+                🔊
+              </button>
+            )}
           </h2>
           <select
             value={userSettings.ageRange}
             onChange={(e) => saveAnswer('ageRange', e.target.value)}
-            style={{ ...fontSizeStyle, padding: 'calc(6px + 0.3em)', borderRadius: '10px', border: '1px solid #ccc', width: '100%' }}
+            style={{
+              ...fontSizeStyle,
+              padding: 'calc(6px + 0.3em)',
+              borderRadius: '10px',
+              border: '1px solid #ccc',
+              width: '100%',
+            }}
           >
             <option value="18_30">18 a 30 años</option>
             <option value="31_50">31 a 50 años</option>
@@ -86,12 +105,14 @@ const WizardView = ({ onFinish }) => {
         <div>
           <h2 style={fontSizeStyle}>
             ¿Te cuesta leer texto pequeño?
-            <button
-              onClick={() => speakText('¿Te cuesta leer texto pequeño?')}
-              style={{ marginLeft: '10px', fontSize: '0.8em', padding: '2px 6px' }}
-            >
-              🔊
-            </button>
+            {isScreenReaderActive && (
+              <button
+                onClick={() => speakText('¿Te cuesta leer texto pequeño?')}
+                style={{ marginLeft: '10px', fontSize: '0.8em', padding: '2px 6px' }}
+              >
+                🔊
+              </button>
+            )}
           </h2>
           <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
             {['Sí, prefiero letra grande', 'No, puedo leer bien'].map((label, idx) => {
@@ -101,7 +122,8 @@ const WizardView = ({ onFinish }) => {
                 <button
                   key={label}
                   onClick={() => saveAnswer('canReadSmallText', value)}
-                  onMouseEnter={() => speakText(label)}
+                  onMouseEnter={() => isScreenReaderActive && speakText(label)}
+                  disabled={!isScreenReaderActive}
                   style={{
                     flex: 1,
                     padding: 'calc(6px + 0.3em)',
@@ -109,7 +131,8 @@ const WizardView = ({ onFinish }) => {
                     border: active ? '2px solid #4caf50' : '1px solid #ccc',
                     backgroundColor: active ? '#0078D4' : '#fff',
                     color: active ? '#fff' : '#333',
-                    cursor: 'pointer',
+                    cursor: !isScreenReaderActive ? 'not-allowed' : 'pointer',
+                    opacity: !isScreenReaderActive ? 0.5 : 1,
                     ...fontSizeStyle,
                   }}
                 >
@@ -124,12 +147,14 @@ const WizardView = ({ onFinish }) => {
         <div>
           <h2 style={fontSizeStyle}>
             ¿Usas lector de pantalla?
-            <button
-              onClick={() => speakText('¿Usas lector de pantalla?')}
-              style={{ marginLeft: '10px', fontSize: '0.8em', padding: '2px 6px' }}
-            >
-              🔊
-            </button>
+            {isScreenReaderActive && (
+              <button
+                onClick={() => speakText('¿Usas lector de pantalla?')}
+                style={{ marginLeft: '10px', fontSize: '0.8em', padding: '2px 6px' }}
+              >
+                🔊
+              </button>
+            )}
           </h2>
           <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
             {['Sí', 'No'].map((label, idx) => {
@@ -139,7 +164,7 @@ const WizardView = ({ onFinish }) => {
                 <button
                   key={label}
                   onClick={() => saveAnswer('usesScreenReader', value)}
-                  onMouseEnter={() => speakText(label)}
+                  onMouseEnter={() => isScreenReaderActive && speakText(label)}
                   style={{
                     flex: 1,
                     padding: 'calc(6px + 0.3em)',
@@ -162,17 +187,25 @@ const WizardView = ({ onFinish }) => {
         <div>
           <h2 style={fontSizeStyle}>
             ¿Qué tan cómoda te sientes usando apps?
-            <button
-              onClick={() => speakText('¿Qué tan cómoda te sientes usando apps?')}
-              style={{ marginLeft: '10px', fontSize: '0.8em', padding: '2px 6px' }}
-            >
-              🔊
-            </button>
+            {isScreenReaderActive && (
+              <button
+                onClick={() => speakText('¿Qué tan cómoda te sientes usando apps?')}
+                style={{ marginLeft: '10px', fontSize: '0.8em', padding: '2px 6px' }}
+              >
+                🔊
+              </button>
+            )}
           </h2>
           <select
             value={userSettings.confidence}
             onChange={(e) => saveAnswer('confidence', e.target.value)}
-            style={{ ...fontSizeStyle, padding: 'calc(6px + 0.3em)', borderRadius: '10px', border: '1px solid #ccc', width: '100%' }}
+            style={{
+              ...fontSizeStyle,
+              padding: 'calc(6px + 0.3em)',
+              borderRadius: '10px',
+              border: '1px solid #ccc',
+              width: '100%',
+            }}
           >
             <option value="low">Me cuesta bastante</option>
             <option value="medium">Más o menos</option>
@@ -184,17 +217,25 @@ const WizardView = ({ onFinish }) => {
         <div>
           <h2 style={fontSizeStyle}>
             ¿Qué tan fácil es para ti leer y escribir mensajes?
-            <button
-              onClick={() => speakText('¿Qué tan fácil es para ti leer y escribir mensajes?')}
-              style={{ marginLeft: '10px', fontSize: '0.8em', padding: '2px 6px' }}
-            >
-              🔊
-            </button>
+            {isScreenReaderActive && (
+              <button
+                onClick={() => speakText('¿Qué tan fácil es para ti leer y escribir mensajes?')}
+                style={{ marginLeft: '10px', fontSize: '0.8em', padding: '2px 6px' }}
+              >
+                🔊
+              </button>
+            )}
           </h2>
           <select
             value={userSettings.literacy}
             onChange={(e) => saveAnswer('literacy', e.target.value)}
-            style={{ ...fontSizeStyle, padding: 'calc(6px + 0.3em)', borderRadius: '10px', border: '1px solid #ccc', width: '100%' }}
+            style={{
+              ...fontSizeStyle,
+              padding: 'calc(6px + 0.3em)',
+              borderRadius: '10px',
+              border: '1px solid #ccc',
+              width: '100%',
+            }}
           >
             <option value="low">Me cuesta leer o escribir mensajes largos</option>
             <option value="medium">A veces me cuesta</option>
@@ -206,19 +247,21 @@ const WizardView = ({ onFinish }) => {
         <div>
           <h2 style={fontSizeStyle}>
             Selecciona tema
-            <button
-              onClick={() => speakText('Selecciona tema')}
-              style={{ marginLeft: '10px', fontSize: '0.8em', padding: '2px 6px' }}
-            >
-              🔊
-            </button>
+            {isScreenReaderActive && (
+              <button
+                onClick={() => speakText('Selecciona tema')}
+                style={{ marginLeft: '10px', fontSize: '0.8em', padding: '2px 6px' }}
+              >
+                🔊
+              </button>
+            )}
           </h2>
           <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
             {['light', 'dark'].map((theme) => (
               <div
                 key={theme}
                 onClick={() => updateTheme(theme)}
-                onMouseEnter={() => speakText(theme === 'light' ? 'Claro' : 'Oscuro')}
+                onMouseEnter={() => isScreenReaderActive && speakText(theme === 'light' ? 'Claro' : 'Oscuro')}
                 style={{
                   flex: 1,
                   padding: '20px',

@@ -1,42 +1,52 @@
-import React from 'react';
+// StepWrapper.jsx
+import React, { useEffect, useState } from "react";
 
 const StepWrapper = ({ children, userSettings }) => {
-  const theme = userSettings?.theme || 'light';
-  const font = userSettings?.font || 'Segoe UI';
-  const fontSize = userSettings?.fontSize || '16px';
+  const theme = userSettings?.theme || "light";
+  const font = userSettings?.font || "Segoe UI";
+  const fontSize = userSettings?.fontSize || "16px";
+  const [isMobile, setIsMobile] = useState(false);
 
-  const backgroundColor = theme === 'dark' ? '#1e1e1e' : '#f3f3f3';
-  const textColor = theme === 'dark' ? '#f5f5f5' : '#333';
+  // Detectar si está en móvil
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    handleResize(); // ejecutar una vez
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const backgroundColor = theme === "dark" ? "#1e1e1e" : "#f3f3f3";
+  const textColor = theme === "dark" ? "#f5f5f5" : "#333";
 
   return (
     <div
       style={{
-        width: '40vw',
-        height: '100vh', // ⚡ body siempre ocupa toda la pantalla
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        width: "100%",
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         backgroundColor,
         fontFamily: font,
         fontSize,
         color: textColor,
-        transition: 'all 0.3s ease',
-        padding: '20px',
-        boxSizing: 'border-box',
+        transition: "all 0.3s ease",
+        padding: isMobile ? "10px" : "20px",
+        boxSizing: "border-box",
       }}
     >
       <div
         style={{
-          width: '400px',       // ⚡ ancho fijo
-          minHeight: '100px',   // ⚡ altura mínima fija
-          maxHeight: '90vh',    // ⚡ no se salga de la pantalla
-          overflowY: 'auto',    // ⚡ scroll si el contenido crece
-          backgroundColor: theme === 'dark' ? '#2c2c2c' : '#fff',
-          padding: '20px',
-          borderRadius: '20px',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
-          position: 'relative',
-          boxSizing: 'border-box',
+          width: isMobile ? "100%" : "400px", // ✅ adaptable
+          minHeight: "100px",
+          maxHeight: "90vh",
+          overflowY: "auto",
+          backgroundColor: theme === "dark" ? "#2c2c2c" : "#fff",
+          padding: isMobile ? "15px" : "20px",
+          borderRadius: "20px",
+          boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+          position: "relative",
+          boxSizing: "border-box",
         }}
       >
         {children}
