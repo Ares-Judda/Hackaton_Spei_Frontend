@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { FaBolt, FaTint, FaWifi, FaPhone, FaPlus } from "react-icons/fa";
+import { getAiRisk } from "../services/aiService";
 
 export default function PayServicesView({ userSettings, onBack }) {
   // ===== Servicios predefinidos =====
@@ -12,13 +13,33 @@ export default function PayServicesView({ userSettings, onBack }) {
 
   // ===== Cuentas de origen (mock) =====
   const sourceAccounts = [
-    { id: "acc1", alias: "Cuenta Nómina", number: "1234 5678 9012 3456", bank: "Banco Inclusivo", balance: 8200.55 },
-    { id: "acc2", alias: "Ahorros",       number: "6543 2109 8765 4321", bank: "Banco Inclusivo", balance: 25000.00 },
-    { id: "acc3", alias: "Gastos",        number: "1111 2222 3333 4444", bank: "Banco Inclusivo", balance: 1200.00 },
+    {
+      id: "acc1",
+      alias: "Cuenta Nómina",
+      number: "1234 5678 9012 3456",
+      bank: "Banco Inclusivo",
+      balance: 8200.55,
+    },
+    {
+      id: "acc2",
+      alias: "Ahorros",
+      number: "6543 2109 8765 4321",
+      bank: "Banco Inclusivo",
+      balance: 25000.0,
+    },
+    {
+      id: "acc3",
+      alias: "Gastos",
+      number: "1111 2222 3333 4444",
+      bank: "Banco Inclusivo",
+      balance: 1200.0,
+    },
   ];
-  const [selectedSourceId, setSelectedSourceId] = useState(sourceAccounts[0].id);
+  const [selectedSourceId, setSelectedSourceId] = useState(
+    sourceAccounts[0].id
+  );
   const selectedSource = useMemo(
-    () => sourceAccounts.find(a => a.id === selectedSourceId),
+    () => sourceAccounts.find((a) => a.id === selectedSourceId),
     [selectedSourceId]
   );
 
@@ -41,23 +62,209 @@ export default function PayServicesView({ userSettings, onBack }) {
   const [toast, setToast] = useState(null); // {type, msg}
   const [successOpen, setSuccessOpen] = useState(false);
 
+  // ===== Estados para IA de riesgo =====
+  const [aiRiskData, setAiRiskData] = useState(null);
+  const [loadingRisk, setLoadingRisk] = useState(false);
+  const [transferAmount, setTransferAmount] = useState(0);
+
   const setField = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const toNumber = (v) => {
-    const x = String(v).replace(",", ".").replace(/[^\d.]/g, "");
+    const x = String(v)
+      .replace(",", ".")
+      .replace(/[^\d.]/g, "");
     const n = Number.parseFloat(x);
     return Number.isFinite(n) ? n : 0;
   };
   const amount = useMemo(() => toNumber(form.amountStr), [form.amountStr]);
 
   const toMXN = (n) =>
-    new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
+    new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN",
+    }).format(n || 0);
 
-  const summaryName = mode === "preset"
-    ? presets.find((p) => p.id === selectedService)?.label || "Servicio"
-    : form.customName || "Servicio personalizado";
+  const summaryName =
+    mode === "preset"
+      ? presets.find((p) => p.id === selectedService)?.label || "Servicio"
+      : form.customName || "Servicio personalizado";
   const summaryRef = mode === "preset" ? form.refPreset : form.customRef;
-  const summaryConvenio = mode === "preset" ? "(automático)" : form.customConvenio || "-";
+  const summaryConvenio =
+    mode === "preset" ? "(automático)" : form.customConvenio || "-";
+
+  // ===== Mapeo de niveles de riesgo =====
+  const mapearNivelRiesgo = (nivel) => {
+    const mapeo = {
+      low: "bajo",
+      medium: "intermedio",
+      high: "alto",
+      bajo: "bajo",
+      medio: "intermedio",
+      alto: "alto",
+    };
+    return mapeo[nivel?.toLowerCase()] || "intermedio";
+  };
+
+  // ===== Mapeo de factores de riesgo a mensajes CLAROS para el usuario =====
+  const traducirFactoresRiesgo = (factores) => {
+    if (!factores || !Array.isArray(factores)) return [];
+
+    const mapeoFactores = {
+      // Factores técnicos de la API
+      HIGH_AMOUNT: "El monto es más alto de lo habitual",
+      UNUSUAL_TIME: "Estás pagando en un horario poco común",
+      FIRST_TIME_SERVICE: "Es la primera vez que pagas este servicio",
+      UNUSUAL_PATTERN:
+        "El patrón de pago es diferente a tu comportamiento normal",
+      SUSPICIOUS_SERVICE: "El servicio tiene características inusuales",
+      CUSTOM_SERVICE:
+        "Servicio personalizado - Verifica los datos cuidadosamente",
+      AMOUNT_MUCH_HIGHER_THAN_AVERAGE:
+        "El monto es significativamente más alto que tu promedio habitual",
+      NEW_BENEFICIARY: "Estás pagando a un nuevo beneficiario",
+      LOW_HISTORY: "Tienes poco historial de pagos",
+
+      // Factores en español por si acaso
+      "Monto elevado": "El monto es más alto de lo habitual",
+      "Horario inusual": "Estás pagando en un horario poco común",
+      "Servicio nuevo": "Es la primera vez que pagas este servicio",
+      "Servicio personalizado":
+        "Servicio personalizado - Verifica los datos cuidadosamente",
+    };
+
+    return factores.map(
+      (factor) => mapeoFactores[factor] || `Factor de riesgo: ${factor}`
+    );
+  };
+
+  // ===== Generar mensaje de riesgo accesible =====
+  const generarMensajeRiesgo = (nivel, factores, esServicioPersonalizado) => {
+    const nivelTraducido = mapearNivelRiesgo(nivel);
+
+    if (nivelTraducido === "alto") {
+      return "Revisa cuidadosamente este pago";
+    }
+
+    if (nivelTraducido === "intermedio") {
+      return esServicioPersonalizado
+        ? "Servicio personalizado - Verifica datos"
+        : "Revisa los detalles del pago";
+    }
+
+    return esServicioPersonalizado ? "Servicio personalizado" : "Pago seguro";
+  };
+
+  // ===== Función para consultar riesgo de IA =====
+  const consultarRiesgoIA = async () => {
+    if (!amount || amount <= 0) return;
+
+    setLoadingRisk(true);
+    try {
+      const payload = {
+        user_id: "current_user",
+        amount: amount,
+        is_new_beneficiary: mode === "custom", // Servicio personalizado es como nuevo beneficiario
+        hour_of_day: new Date().getHours(),
+        num_past_transactions: mode === "preset" ? 3 : 0, // Más historial para servicios predefinidos
+        avg_transaction_amount: 500, // Monto promedio estimado para servicios
+        max_transaction_amount: amount,
+        num_transactions_to_beneficiary: mode === "preset" ? 2 : 0,
+        is_new_device: false,
+        geolocation_changed: false,
+      };
+
+      const response = await getAiRisk(payload);
+      setAiRiskData(response.data);
+    } catch (error) {
+      console.error("Error al consultar riesgo de IA:", error);
+      // En caso de error, usar lógica de respaldo
+      setAiRiskData({
+        result: {
+          risk_level: mode === "custom" ? "medium" : "low",
+          risk_score: mode === "custom" ? 65 : 25,
+          risk_factors:
+            mode === "custom" ? ["custom_service"] : ["routine_payment"],
+        },
+      });
+    } finally {
+      setLoadingRisk(false);
+    }
+  };
+
+  // ===== Determinar nivel de riesgo basado en IA o lógica de respaldo =====
+  const determinarRiesgo = () => {
+    if (loadingRisk) {
+      return {
+        level: "calculando",
+        msg: "Calculando riesgo...",
+        levelTraducido: "calculando",
+        factors: [],
+      };
+    }
+
+    if (aiRiskData) {
+      const riskLevel = aiRiskData.result.risk_level;
+      const riskFactors = aiRiskData.result.risk_factors;
+      const nivelTraducido = mapearNivelRiesgo(riskLevel);
+      const factoresTraducidos = traducirFactoresRiesgo(riskFactors);
+      const mensaje = generarMensajeRiesgo(
+        riskLevel,
+        factoresTraducidos,
+        mode === "custom"
+      );
+
+      return {
+        level: riskLevel,
+        levelTraducido: nivelTraducido,
+        msg: mensaje,
+        factors: factoresTraducidos,
+      };
+    }
+
+    // Lógica de respaldo si no hay datos de IA
+    const esServicioPersonalizado = mode === "custom";
+    const montoAlto = amount > 5000; // Threshold más bajo para servicios
+
+    if (esServicioPersonalizado) {
+      return {
+        level: "medium",
+        levelTraducido: "intermedio",
+        msg: "Servicio personalizado - Verifica datos",
+        factors: ["Servicio personalizado - Verifica los datos cuidadosamente"],
+      };
+    } else if (montoAlto) {
+      return {
+        level: "medium",
+        levelTraducido: "intermedio",
+        msg: "Revisa los detalles del pago",
+        factors: ["El monto es más alto de lo habitual para servicios"],
+      };
+    } else {
+      return {
+        level: "low",
+        levelTraducido: "bajo",
+        msg: "Pago seguro",
+        factors: ["Pago rutinario"],
+      };
+    }
+  };
+
+  const riesgoActual = determinarRiesgo();
+
+  // ===== Efectos para consultar riesgo cuando cambien los parámetros =====
+  useEffect(() => {
+    if (amount > 0) {
+      const timeoutId = setTimeout(consultarRiesgoIA, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [amount, mode, selectedService]);
+
+  // ===== Capturar el monto cuando se confirma el pago =====
+  useEffect(() => {
+    if (amount > 0) {
+      setTransferAmount(amount);
+    }
+  }, [amount]);
 
   // ===== Estilos (coherentes con Home/Transfer/Accounts/Receive) =====
   const isDark = userSettings?.theme === "dark";
@@ -70,7 +277,8 @@ export default function PayServicesView({ userSettings, onBack }) {
   const borderColor = isDark ? "#293548" : "#d1d5db";
   const subtleText = isDark ? "#94a3b8" : "#6b7280";
   const fontSizeBase = userSettings?.fontSize || "0.95rem";
-  const fontFamily = userSettings?.font || "system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  const fontFamily =
+    userSettings?.font || "system-ui, -apple-system, Segoe UI, Roboto, Arial";
 
   const container = {
     display: "flex",
@@ -95,9 +303,16 @@ export default function PayServicesView({ userSettings, onBack }) {
     border: `1px solid ${borderColor}`,
     borderRadius: 18,
     padding: 16,
-    boxShadow: isDark ? "0 4px 10px rgba(0,0,0,0.25)" : "0 4px 10px rgba(0,0,0,0.08)",
+    boxShadow: isDark
+      ? "0 4px 10px rgba(0,0,0,0.25)"
+      : "0 4px 10px rgba(0,0,0,0.08)",
   };
-  const legend = { fontSize: "0.95rem", fontWeight: 700, marginBottom: 8, color: textColor };
+  const legend = {
+    fontSize: "0.95rem",
+    fontWeight: 700,
+    marginBottom: 8,
+    color: textColor,
+  };
   const label = { fontSize: fontSizeBase, fontWeight: 700, color: textColor };
   const input = {
     width: "100%",
@@ -163,19 +378,31 @@ export default function PayServicesView({ userSettings, onBack }) {
     padding: 10,
     fontSize: "0.95rem",
     border:
-      type === "success" ? "1px solid #86efac" :
-      type === "error"   ? "1px solid #fca5a5" :
-                           `1px solid ${borderColor}`,
+      type === "success"
+        ? "1px solid #86efac"
+        : type === "error"
+        ? "1px solid #fca5a5"
+        : `1px solid ${borderColor}`,
     background:
-      type === "success" ? (isDark ? "#052e1b" : "#f0fdf4") :
-      type === "error"   ? (isDark ? "#3a0d0d" : "#fef2f2") :
-                           (isDark ? "#0b1220" : "#eff6ff"),
+      type === "success"
+        ? isDark
+          ? "#052e1b"
+          : "#f0fdf4"
+        : type === "error"
+        ? isDark
+          ? "#3a0d0d"
+          : "#fef2f2"
+        : isDark
+        ? "#0b1220"
+        : "#eff6ff",
     color: textColor,
   });
 
   // Hovers/press
-  const onHoverIn = (e) => (e.currentTarget.style.backgroundColor = buttonHover);
-  const onHoverOut = (e) => (e.currentTarget.style.backgroundColor = accentColor);
+  const onHoverIn = (e) =>
+    (e.currentTarget.style.backgroundColor = buttonHover);
+  const onHoverOut = (e) =>
+    (e.currentTarget.style.backgroundColor = accentColor);
   const onPressIn = (e) => (e.currentTarget.style.transform = "scale(0.98)");
   const onPressOut = (e) => (e.currentTarget.style.transform = "scale(1)");
 
@@ -186,13 +413,17 @@ export default function PayServicesView({ userSettings, onBack }) {
     if (amount > 150000) e.amountStr = "Máximo 150,000 MXN.";
 
     if (selectedSource && amount > selectedSource.balance) {
-      e.amountStr = `Saldo insuficiente en ${selectedSource.alias} (${toMXN(selectedSource.balance)})`;
+      e.amountStr = `Saldo insuficiente en ${selectedSource.alias} (${toMXN(
+        selectedSource.balance
+      )})`;
     }
 
     if (mode === "preset") {
-      if (!form.refPreset.trim()) e.refPreset = "Ingresa la referencia de tu servicio.";
+      if (!form.refPreset.trim())
+        e.refPreset = "Ingresa la referencia de tu servicio.";
     } else {
-      if (!form.customName.trim()) e.customName = "Nombre del servicio requerido.";
+      if (!form.customName.trim())
+        e.customName = "Nombre del servicio requerido.";
       if (!/^\d{4,}$/.test(form.customConvenio.trim()))
         e.customConvenio = "Convenio (solo dígitos, al menos 4).";
       if (!form.customRef.trim()) e.customRef = "Referencia requerida.";
@@ -230,7 +461,9 @@ export default function PayServicesView({ userSettings, onBack }) {
             <button
               onClick={onBack}
               style={ghostBtn}
-              onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
+              onMouseDown={(e) =>
+                (e.currentTarget.style.transform = "scale(0.98)")
+              }
               onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
             >
               ← Volver
@@ -253,8 +486,12 @@ export default function PayServicesView({ userSettings, onBack }) {
                 onClick={() => setSelectedSourceId(acc.id)}
                 style={sourceChip(selectedSourceId === acc.id)}
                 aria-label={`Usar ${acc.alias} como cuenta de origen`}
-                onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
-                onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                onMouseDown={(e) =>
+                  (e.currentTarget.style.transform = "scale(0.98)")
+                }
+                onMouseUp={(e) =>
+                  (e.currentTarget.style.transform = "scale(1)")
+                }
               >
                 <div style={{ fontWeight: 700 }}>{acc.alias}</div>
                 <div style={{ fontSize: "0.9rem", color: subtleText }}>
@@ -272,12 +509,25 @@ export default function PayServicesView({ userSettings, onBack }) {
         <div style={fieldCard}>
           <div style={legend}>Tipo de servicio</div>
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-            <button onClick={() => setMode("preset")} style={chip(mode === "preset")}>
+            <button
+              onClick={() => setMode("preset")}
+              style={chip(mode === "preset")}
+            >
               <div style={{ fontWeight: 700 }}>Servicios</div>
               <div style={small}>Agua/Luz/Internet</div>
             </button>
-            <button onClick={() => setMode("custom")} style={chip(mode === "custom")}>
-              <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+            <button
+              onClick={() => setMode("custom")}
+              style={chip(mode === "custom")}
+            >
+              <div
+                style={{
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
                 <FaPlus /> Personalizado
               </div>
               <div style={small}>Convenio/Referencia</div>
@@ -286,7 +536,13 @@ export default function PayServicesView({ userSettings, onBack }) {
 
           {mode === "preset" ? (
             <>
-              <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gap: 8,
+                  gridTemplateColumns: "1fr 1fr",
+                }}
+              >
                 {presets.map((p) => (
                   <button
                     key={p.id}
@@ -301,7 +557,9 @@ export default function PayServicesView({ userSettings, onBack }) {
               </div>
 
               <div style={{ marginTop: 12 }}>
-                <label htmlFor="refPreset" style={label}>Referencia del servicio</label>
+                <label htmlFor="refPreset" style={label}>
+                  Referencia del servicio
+                </label>
                 <input
                   id="refPreset"
                   style={input}
@@ -309,13 +567,19 @@ export default function PayServicesView({ userSettings, onBack }) {
                   onChange={(e) => setField("refPreset", e.target.value)}
                   placeholder="Ej. Número de contrato/servicio"
                 />
-                {errors.refPreset && <p style={{ fontSize: "0.85rem", color: "#f87171" }}>{errors.refPreset}</p>}
+                {errors.refPreset && (
+                  <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
+                    {errors.refPreset}
+                  </p>
+                )}
               </div>
             </>
           ) : (
             <div style={{ display: "grid", gap: 8 }}>
               <div>
-                <label htmlFor="customName" style={label}>Nombre del servicio</label>
+                <label htmlFor="customName" style={label}>
+                  Nombre del servicio
+                </label>
                 <input
                   id="customName"
                   style={input}
@@ -323,24 +587,41 @@ export default function PayServicesView({ userSettings, onBack }) {
                   onChange={(e) => setField("customName", e.target.value)}
                   placeholder="Ej. Agua Municipal Xalapa"
                 />
-                {errors.customName && <p style={{ fontSize: "0.85rem", color: "#f87171" }}>{errors.customName}</p>}
+                {errors.customName && (
+                  <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
+                    {errors.customName}
+                  </p>
+                )}
               </div>
 
               <div>
-                <label htmlFor="customConvenio" style={label}>Número de convenio</label>
+                <label htmlFor="customConvenio" style={label}>
+                  Número de convenio
+                </label>
                 <input
                   id="customConvenio"
                   inputMode="numeric"
                   style={input}
                   value={form.customConvenio}
-                  onChange={(e) => setField("customConvenio", e.target.value.replace(/[^\d]/g, ""))}
+                  onChange={(e) =>
+                    setField(
+                      "customConvenio",
+                      e.target.value.replace(/[^\d]/g, "")
+                    )
+                  }
                   placeholder="Solo dígitos"
                 />
-                {errors.customConvenio && <p style={{ fontSize: "0.85rem", color: "#f87171" }}>{errors.customConvenio}</p>}
+                {errors.customConvenio && (
+                  <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
+                    {errors.customConvenio}
+                  </p>
+                )}
               </div>
 
               <div>
-                <label htmlFor="customRef" style={label}>Referencia</label>
+                <label htmlFor="customRef" style={label}>
+                  Referencia
+                </label>
                 <input
                   id="customRef"
                   style={input}
@@ -348,7 +629,11 @@ export default function PayServicesView({ userSettings, onBack }) {
                   onChange={(e) => setField("customRef", e.target.value)}
                   placeholder="Número de referencia del servicio"
                 />
-                {errors.customRef && <p style={{ fontSize: "0.85rem", color: "#f87171" }}>{errors.customRef}</p>}
+                {errors.customRef && (
+                  <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
+                    {errors.customRef}
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -357,7 +642,9 @@ export default function PayServicesView({ userSettings, onBack }) {
         {/* Monto */}
         <div style={fieldCard}>
           <div style={legend}>Monto</div>
-          <label htmlFor="amount" style={label}>Cantidad a pagar (MXN)</label>
+          <label htmlFor="amount" style={label}>
+            Cantidad a pagar (MXN)
+          </label>
           <input
             id="amount"
             style={input}
@@ -369,91 +656,269 @@ export default function PayServicesView({ userSettings, onBack }) {
           <p style={small}>
             {amount ? `Se pagarán ${toMXN(amount)}` : "Ej. 350.00"}
             {selectedSource && amount > 0 && (
-              <> · Saldo en {selectedSource.alias}: <b>{toMXN(selectedSource.balance)}</b></>
+              <>
+                {" "}
+                · Saldo en {selectedSource.alias}:{" "}
+                <b>{toMXN(selectedSource.balance)}</b>
+              </>
             )}
           </p>
-          {errors.amountStr && <p style={{ fontSize: "0.85rem", color: "#f87171" }}>{errors.amountStr}</p>}
+          {errors.amountStr && (
+            <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
+              {errors.amountStr}
+            </p>
+          )}
         </div>
 
         {/* Resumen */}
         <div style={fieldCard}>
           <div style={legend}>Resumen</div>
           <div style={{ fontSize: "0.95rem", color: subtleText }}>
-            <div><b>Cuenta de origen:</b> {selectedSource?.alias} · {selectedSource?.bank} · **** {selectedSource?.number.slice(-4)}</div>
-            <div><b>Servicio:</b> {summaryName}</div>
-            <div><b>Convenio:</b> {summaryConvenio}</div>
-            <div><b>Referencia:</b> {summaryRef || "-"}</div>
-            <div><b>Monto:</b> {toMXN(amount)}</div>
+            <div>
+              <b>Cuenta de origen:</b> {selectedSource?.alias} ·{" "}
+              {selectedSource?.bank} · **** {selectedSource?.number.slice(-4)}
+            </div>
+            <div>
+              <b>Servicio:</b> {summaryName}
+            </div>
+            <div>
+              <b>Convenio:</b> {summaryConvenio}
+            </div>
+            <div>
+              <b>Referencia:</b> {summaryRef || "-"}
+            </div>
+            <div>
+              <b>Monto:</b> {toMXN(amount)}
+            </div>
           </div>
         </div>
 
-        {/* Acciones */}
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-          <button
-            onClick={onBack}
-            style={ghostBtn}
-            onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
-            onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
-          >
-            Cancelar
-          </button>
+        {/* Indicador de Riesgo y Acciones */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <p style={{ fontSize: "0.9rem", color: subtleText }}>
+            Riesgo estimado:{" "}
+            <b
+              style={{
+                color:
+                  riesgoActual.levelTraducido === "alto"
+                    ? "#f87171"
+                    : riesgoActual.levelTraducido === "intermedio"
+                    ? "#eab308"
+                    : riesgoActual.levelTraducido === "calculando"
+                    ? subtleText
+                    : "#22c55e",
+              }}
+            >
+              {riesgoActual.levelTraducido === "calculando"
+                ? "CALCULANDO"
+                : riesgoActual.levelTraducido.toUpperCase()}
+            </b>{" "}
+            · {riesgoActual.msg}
+          </p>
+
           <button
             onClick={pay}
-            disabled={submitting}
-            style={{ ...primaryBtn, backgroundColor: accentColor, opacity: submitting ? 0.8 : 1 }}
+            disabled={submitting || loadingRisk}
+            style={{
+              ...primaryBtn,
+              backgroundColor: accentColor,
+              opacity: submitting || loadingRisk ? 0.8 : 1,
+            }}
             onMouseEnter={onHoverIn}
             onMouseLeave={onHoverOut}
             onMouseDown={onPressIn}
             onMouseUp={onPressOut}
           >
-            {submitting ? "Procesando..." : "Pagar ahora"}
+            {submitting
+              ? "Procesando..."
+              : loadingRisk
+              ? "Calculando..."
+              : "Pagar ahora"}
           </button>
         </div>
-
-        {/* Toast */}
-        {toast && toast.type !== "success" && (
-          <div style={toastBox(toast.type)}>{toast.msg}</div>
-        )}
 
         {/* Modal de éxito */}
         {successOpen && (
           <div
             role="dialog"
             aria-modal="true"
-            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.4)",
+              display: "grid",
+              placeItems: "center",
+              padding: 16,
+              zIndex: 60,
+            }}
           >
-            <div style={{
-              width: "100%", maxWidth: 420, background: cardColor,
-              border: `1px solid ${borderColor}`, borderRadius: 18, padding: 16,
-              boxShadow: "0 6px 20px rgba(0,0,0,0.25)", textAlign: "center", color: textColor
-            }}>
-              <div style={{ fontSize: 40, lineHeight: 1, marginBottom: 8 }}>✅</div>
-              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 6 }}>¡Pago realizado!</h3>
-              <p style={{ color: subtleText, fontSize: "0.95rem", marginBottom: 12 }}>
+            <div
+              style={{
+                width: "100%",
+                maxWidth: 420,
+                background: cardColor,
+                border: `1px solid ${borderColor}`,
+                borderRadius: 18,
+                padding: 16,
+                boxShadow: "0 6px 20px rgba(0,0,0,0.25)",
+                textAlign: "center",
+                color: textColor,
+              }}
+            >
+              <div style={{ fontSize: 40, lineHeight: 1, marginBottom: 8 }}>
+                ✅
+              </div>
+              <h3
+                style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 6 }}
+              >
+                ¡Pago realizado!
+              </h3>
+              <p
+                style={{
+                  color: subtleText,
+                  fontSize: "0.95rem",
+                  marginBottom: 12,
+                }}
+              >
                 Tu pago se realizó correctamente.
               </p>
-              <div style={{
-                border: `1px solid ${borderColor}`, borderRadius: 12, padding: 12,
-                textAlign: "left", marginBottom: 12, fontSize: "0.95rem", color: textColor, background: inputBg
-              }}>
-                <div><b>Cuenta de origen:</b> {selectedSource?.alias} · **** {selectedSource?.number.slice(-4)}</div>
-                <div><b>Servicio:</b> {summaryName}</div>
-                <div><b>Convenio:</b> {summaryConvenio}</div>
-                <div><b>Referencia:</b> {summaryRef || "-"}</div>
-                <div><b>Monto:</b> {toMXN(amount)}</div>
-                <div><b>Folio:</b> {`SIM-${Date.now().toString().slice(-6)}`}</div>
+              <div
+                style={{
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: 12,
+                  padding: 12,
+                  textAlign: "left",
+                  marginBottom: 12,
+                  fontSize: "0.95rem",
+                  color: textColor,
+                  background: inputBg,
+                }}
+              >
+                <div>
+                  <b>Cuenta de origen:</b> {selectedSource?.alias} · ****{" "}
+                  {selectedSource?.number.slice(-4)}
+                </div>
+                <div>
+                  <b>Servicio:</b> {summaryName}
+                </div>
+                <div>
+                  <b>Convenio:</b> {summaryConvenio}
+                </div>
+                <div>
+                  <b>Referencia:</b> {summaryRef || "-"}
+                </div>
+                <div>
+                  <b>Monto:</b> {toMXN(transferAmount || amount)}
+                </div>
+                <div>
+                  <b>Folio:</b> {`SIM-${Date.now().toString().slice(-6)}`}
+                </div>
               </div>
-              <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+
+              {/* Información de riesgo en el éxito */}
+              {riesgoActual && (
+                <div
+                  style={{
+                    marginBottom: "12px",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    backgroundColor:
+                      riesgoActual.levelTraducido === "alto"
+                        ? isDark
+                          ? "#3a0d0d"
+                          : "#fef2f2"
+                        : riesgoActual.levelTraducido === "intermedio"
+                        ? isDark
+                          ? "#3b2e05"
+                          : "#fffbeb"
+                        : isDark
+                        ? "#052e1b"
+                        : "#f0fdf4",
+                    border:
+                      riesgoActual.levelTraducido === "alto"
+                        ? "1px solid #fca5a5"
+                        : riesgoActual.levelTraducido === "intermedio"
+                        ? "1px solid #fde68a"
+                        : "1px solid #86efac",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                      margin: "0 0 4px 0",
+                      color: textColor,
+                    }}
+                  >
+                    Nivel de riesgo:{" "}
+                    <span
+                      style={{
+                        color:
+                          riesgoActual.levelTraducido === "alto"
+                            ? "#f87171"
+                            : riesgoActual.levelTraducido === "intermedio"
+                            ? "#eab308"
+                            : "#22c55e",
+                      }}
+                    >
+                      {riesgoActual.levelTraducido.toUpperCase()}
+                    </span>
+                  </p>
+                  {riesgoActual.factors && riesgoActual.factors.length > 0 && (
+                    <div>
+                      <p
+                        style={{
+                          fontSize: "0.8rem",
+                          margin: "2px 0",
+                          color: subtleText,
+                        }}
+                      >
+                        Factores considerados:
+                      </p>
+                      <ul
+                        style={{
+                          fontSize: "0.75rem",
+                          margin: "4px 0 0 0",
+                          paddingLeft: "16px",
+                          color: subtleText,
+                        }}
+                      >
+                        {riesgoActual.factors.map((factor, index) => (
+                          <li key={index}>{factor}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div
+                style={{ display: "flex", gap: 8, justifyContent: "center" }}
+              >
                 <button
                   onClick={() => setSuccessOpen(false)}
                   style={ghostBtn}
-                  onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
-                  onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                  onMouseDown={(e) =>
+                    (e.currentTarget.style.transform = "scale(0.98)")
+                  }
+                  onMouseUp={(e) =>
+                    (e.currentTarget.style.transform = "scale(1)")
+                  }
                 >
                   Hacer otro pago
                 </button>
                 <button
-                  onClick={() => { setSuccessOpen(false); onBack?.(); }}
+                  onClick={() => {
+                    setSuccessOpen(false);
+                    onBack?.();
+                  }}
                   style={{ ...primaryBtn, backgroundColor: accentColor }}
                   onMouseEnter={onHoverIn}
                   onMouseLeave={onHoverOut}
