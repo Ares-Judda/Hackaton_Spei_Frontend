@@ -1,8 +1,10 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { updateAccessibilityProfile } from "../services/profileService.js";
+import { getAiAccessibility } from "../services/aiService.js";
 import AppWrapper from "../components/AppWrapper";
 import { useFormController } from "../controllers/formController";
+import { useAuth } from "../context/AuthContext.jsx";
 
-// 🔊 Función de lectura en voz
 function speakText(text) {
   if (typeof window === "undefined") return;
   if (!("speechSynthesis" in window)) return;
@@ -12,27 +14,143 @@ function speakText(text) {
   window.speechSynthesis.speak(utter);
 }
 
-const WizardView = ({ onFinish }) => {
-  const { userSettings, updateTheme, saveAnswer } = useFormController();
-  const fontSizeStyle = { fontSize: userSettings.fontSize };
+async function fetchWithRetry(fetchFn, maxRetries = 3, baseDelay = 1500) {
+  let lastError;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const result = await fetchFn();
+      return result;
+    } catch (error) {
+      lastError = error;
+      if (attempt === maxRetries - 1) throw error;
+      const delay = baseDelay * Math.pow(2, attempt);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  throw lastError;
+}
+
+function mapAiThemeToDb(aiTheme, currentTheme) {
+  const themeMap = {
+    light: "claro",
+    dark: "oscuro",
+    "high-contrast": "alto_contraste",
+    "large-text-high-contrast": "alto_contraste",
+    "standard-accessible": "claro",
+    "voice-assisted": "claro",
+  };
+
+  const normalizedAiTheme = aiTheme?.toLowerCase?.().trim();
+  const normalizedCurrent = currentTheme?.toLowerCase?.().trim();
+
+  if (
+    normalizedCurrent &&
+    !["auto", "default", "ai"].includes(normalizedCurrent)
+  ) {
+    return themeMap[normalizedCurrent] || normalizedCurrent;
+  }
+
+  return themeMap[normalizedAiTheme] || themeMap[normalizedCurrent] || "claro";
+}
+
+const WizardView = ({ onFinish, userSettings: initialSettings }) => {
+  const { user } = useAuth();
+  const { userSettings, updateTheme, saveAnswer } =
+    useFormController(initialSettings);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [loadingMsg, setLoadingMsg] = useState("");
   const isVoiceActive = userSettings.needsVoiceAssistant;
 
-  // 🎧 Voz inicial si está activa
   useEffect(() => {
-    if (userSettings.needsVoiceAssistant) {
+    if (userSettings.needsVoiceAssistant)
       speakText("Bienvenido al cuestionario de accesibilidad");
-    } else {
-      window.speechSynthesis.cancel();
-    }
+    else window.speechSynthesis.cancel();
   }, [userSettings.needsVoiceAssistant]);
 
-  // 🎨 Colores iguales al login
   const theme = userSettings?.theme;
   const isDark = theme === "dark";
   const bgColor = isDark ? "#0f172a" : "#f3f4f6";
   const textColor = isDark ? "#e2e8f0" : "#1e293b";
   const borderColor = isDark ? "#334155" : "#d1d5db";
   const accentColor = "#0078D4";
+
+  const handleFinish = async () => {
+    setIsSubmitting(true);
+    setErrorMsg("");
+    setLoadingMsg("Guardando tu perfil...");
+
+    if (!userSettings.name || userSettings.name.trim() === "") {
+      setErrorMsg("Por favor, dinos cómo te llamamos.");
+      setIsSubmitting(false);
+      setLoadingMsg("");
+      return;
+    }
+
+    try {
+      const aiPayload = {
+        user_id: user?.id || "default-user-id",
+        can_read_small_text: userSettings.canReadSmallText,
+        uses_screen_reader: userSettings.usesScreenReader,
+        feels_confident_with_apps: userSettings.confidence,
+        age_range: userSettings.ageRange,
+        avg_time_per_screen_seconds: 0,
+        total_validation_errors: 0,
+        requested_help_count: 0,
+      };
+
+      const aiResponse = await fetchWithRetry(
+        () => getAiAccessibility(aiPayload),
+        3,
+        1500
+      );
+      const recommendations = aiResponse.data.recommendation;
+      const aiTheme = recommendations.theme;
+      const dbTheme = mapAiThemeToDb(aiTheme, userSettings.theme);
+
+      const literacyMap = {
+        high: "no_problemas",
+        medium: "a_veces_cuesta",
+        low: "cuesta",
+      };
+      const dbLiteracyLevel =
+        literacyMap[userSettings.literacy] || "no_problemas";
+
+      const finalPayload = {
+        alias: userSettings.name.trim(),
+        ageRange: userSettings.ageRange,
+        literacyLevel: dbLiteracyLevel,
+        theme: dbTheme,
+        screenReaderMode: recommendations.screen_reader_mode,
+        fontScale: recommendations.font_scale,
+        nudgingLevel: recommendations.nudging_level,
+        voiceFeedback: recommendations.voice_feedback,
+      };
+
+      await updateAccessibilityProfile(finalPayload);
+
+      const uiThemeMap = {
+        claro: "light",
+        oscuro: "dark",
+        alto_contraste: "high-contrast",
+      };
+
+      const finalSettings = {
+        ...userSettings,
+        theme: uiThemeMap[dbTheme] || "light",
+        screenReaderMode: recommendations.screen_reader_mode,
+        fontScale: recommendations.font_scale,
+        nudgingLevel: recommendations.nudging_level,
+        voiceFeedback: recommendations.voice_feedback,
+      };
+
+      setTimeout(() => onFinish(finalSettings), 1000);
+    } catch {
+      setErrorMsg("Error al guardar tu perfil. Intenta de nuevo.");
+      setIsSubmitting(false);
+      setLoadingMsg("");
+    }
+  };
 
   return (
     <AppWrapper userSettings={userSettings}>
@@ -53,16 +171,20 @@ const WizardView = ({ onFinish }) => {
         <div
           style={{
             width: "100%",
-            maxWidth: "420px", // 👈 más ancho que login, pero mantiene equilibrio
+            maxWidth: "420px",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             gap: "20px",
-            backgroundColor: "transparent",
           }}
         >
-          {/* 🔹 Título */}
-          <h1 style={{ fontSize: "1.5rem", fontWeight: "bold", marginBottom: "6px" }}>
+          <h1
+            style={{
+              fontSize: "1.5rem",
+              fontWeight: "bold",
+              marginBottom: "6px",
+            }}
+          >
             Cuestionario de Accesibilidad
           </h1>
           <p
@@ -77,9 +199,14 @@ const WizardView = ({ onFinish }) => {
             Ayúdanos a adaptar tu experiencia bancaria a tus necesidades.
           </p>
 
-          {/* 🔸 Campos del formulario */}
-          <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "18px" }}>
-            {/* 🗣️ 1. Asistente de voz */}
+          <div
+            style={{
+              width: "100%",
+              display: "flex",
+              flexDirection: "column",
+              gap: "18px",
+            }}
+          >
             <section>
               <label style={{ fontWeight: 600 }}>
                 ¿Necesitas apoyo de un asistente de voz?
@@ -117,7 +244,6 @@ const WizardView = ({ onFinish }) => {
               </div>
             </section>
 
-            {/* 👤 2. Nombre */}
             <section>
               <label style={{ fontWeight: 600 }}>¿Cómo te llamamos?</label>
               <input
@@ -136,7 +262,6 @@ const WizardView = ({ onFinish }) => {
               />
             </section>
 
-            {/* 🎂 3. Edad */}
             <section>
               <label style={{ fontWeight: 600 }}>Tu rango de edad</label>
               <select
@@ -158,47 +283,47 @@ const WizardView = ({ onFinish }) => {
               </select>
             </section>
 
-            {/* 👓 4. Lectura */}
             <section>
-              <label style={{ fontWeight: 600 }}>¿Te cuesta leer texto pequeño?</label>
+              <label style={{ fontWeight: 600 }}>
+                ¿Te cuesta leer texto pequeño?
+              </label>
               <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
-                {["Sí, prefiero letra grande", "No, puedo leer bien"].map(
-                  (label, idx) => {
-                    const value = idx === 0 ? false : true;
-                    const active = userSettings.canReadSmallText === value;
-                    return (
-                      <button
-                        key={label}
-                        onClick={() => saveAnswer("canReadSmallText", value)}
-                        onMouseEnter={() => isVoiceActive && speakText(label)}
-                        style={{
-                          flex: 1,
-                          padding: "10px",
-                          borderRadius: "10px",
-                          border: active
-                            ? `2px solid ${accentColor}`
-                            : `1px solid ${borderColor}`,
-                          backgroundColor: active
-                            ? accentColor
-                            : isDark
-                            ? "#1e293b"
-                            : "#fff",
-                          color: active ? "#fff" : textColor,
-                          fontWeight: 600,
-                          cursor: "pointer",
-                        }}
-                      >
-                        {label}
-                      </button>
-                    );
-                  }
-                )}
+                {["Sí, me cuesta", "No, puedo leer bien"].map((label, idx) => {
+                  const value = idx === 1;
+                  const active = userSettings.canReadSmallText === value;
+                  return (
+                    <button
+                      key={label}
+                      onClick={() => saveAnswer("canReadSmallText", value)}
+                      onMouseEnter={() => isVoiceActive && speakText(label)}
+                      style={{
+                        flex: 1,
+                        padding: "10px",
+                        borderRadius: "10px",
+                        border: active
+                          ? `2px solid ${accentColor}`
+                          : `1px solid ${borderColor}`,
+                        backgroundColor: active
+                          ? accentColor
+                          : isDark
+                          ? "#1e293b"
+                          : "#fff",
+                        color: active ? "#fff" : textColor,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
             </section>
 
-            {/* 📱 5. Lector de pantalla */}
             <section>
-              <label style={{ fontWeight: 600 }}>¿Usas lector de pantalla?</label>
+              <label style={{ fontWeight: 600 }}>
+                ¿Usas lector de pantalla?
+              </label>
               <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
                 {["Sí", "No"].map((label, idx) => {
                   const value = idx === 0;
@@ -232,7 +357,6 @@ const WizardView = ({ onFinish }) => {
               </div>
             </section>
 
-            {/* 🧭 6. Confianza */}
             <section>
               <label style={{ fontWeight: 600 }}>
                 ¿Qué tan cómoda te sientes usando apps?
@@ -255,7 +379,6 @@ const WizardView = ({ onFinish }) => {
               </select>
             </section>
 
-            {/* ✍️ 7. Lectura y escritura */}
             <section>
               <label style={{ fontWeight: 600 }}>
                 ¿Qué tan fácil es para ti leer y escribir mensajes?
@@ -272,22 +395,26 @@ const WizardView = ({ onFinish }) => {
                   color: textColor,
                 }}
               >
-                <option value="low">Me cuesta leer o escribir mensajes largos</option>
+                <option value="low">
+                  Me cuesta leer o escribir mensajes largos
+                </option>
                 <option value="medium">A veces me cuesta</option>
                 <option value="high">No tengo problemas</option>
               </select>
             </section>
 
-            {/* 🎨 8. Tema */}
             <section>
-              <label style={{ fontWeight: 600 }}>Selecciona tema</label>
+              <label style={{ fontWeight: 600 }}>
+                Vista previa de tema (será ajustado automáticamente)
+              </label>
               <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
                 {["light", "dark"].map((t) => (
                   <div
                     key={t}
                     onClick={() => updateTheme(t)}
                     onMouseEnter={() =>
-                      isVoiceActive && speakText(t === "light" ? "Claro" : "Oscuro")
+                      isVoiceActive &&
+                      speakText(t === "light" ? "Claro" : "Oscuro")
                     }
                     style={{
                       flex: 1,
@@ -308,12 +435,58 @@ const WizardView = ({ onFinish }) => {
                   </div>
                 ))}
               </div>
+              <p
+                style={{ fontSize: "0.75rem", opacity: 0.6, marginTop: "6px" }}
+              >
+                El tema final será recomendado por nuestro sistema según tus
+                respuestas
+              </p>
             </section>
 
-            {/* ✅ Botón Finalizar */}
-            <section style={{ textAlign: "center", marginTop: "20px" }}>
+            <section
+              style={{
+                width: "100%",
+                textAlign: "center",
+                marginTop: "20px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+              }}
+            >
+              {loadingMsg && !errorMsg && (
+                <div
+                  style={{
+                    border: `1px solid ${accentColor}`,
+                    background: isDark ? "#1e3a5f" : "#dbeafe",
+                    color: isDark ? "#93c5fd" : "#1e40af",
+                    borderRadius: 12,
+                    padding: "10px",
+                    fontSize: ".9rem",
+                  }}
+                >
+                  {loadingMsg}
+                </div>
+              )}
+
+              {errorMsg && (
+                <div
+                  role="alert"
+                  style={{
+                    border: "1px solid #fca5a5",
+                    background: "#fef2f2",
+                    color: "#991b1b",
+                    borderRadius: 12,
+                    padding: "10px",
+                    fontSize: ".9rem",
+                  }}
+                >
+                  {errorMsg}
+                </div>
+              )}
+
               <button
-                onClick={() => onFinish(userSettings)}
+                onClick={handleFinish}
+                disabled={isSubmitting}
                 style={{
                   width: "100%",
                   padding: "12px",
@@ -323,18 +496,24 @@ const WizardView = ({ onFinish }) => {
                   color: "#fff",
                   fontWeight: "600",
                   fontSize: "1rem",
-                  cursor: "pointer",
+                  cursor: isSubmitting ? "wait" : "pointer",
                   transition: "all 0.2s ease",
+                  opacity: isSubmitting ? 0.7 : 1,
                 }}
-                onMouseEnter={(e) => (e.target.style.backgroundColor = "#005EA6")}
-                onMouseLeave={(e) => (e.target.style.backgroundColor = accentColor)}
+                onMouseEnter={(e) =>
+                  (e.target.style.backgroundColor = isSubmitting
+                    ? accentColor
+                    : "#005EA6")
+                }
+                onMouseLeave={(e) =>
+                  (e.target.style.backgroundColor = accentColor)
+                }
               >
-                Finalizar
+                {isSubmitting ? "Guardando..." : "Finalizar"}
               </button>
             </section>
           </div>
 
-          {/* 🔹 Pie */}
           <p
             style={{
               fontSize: "0.7rem",

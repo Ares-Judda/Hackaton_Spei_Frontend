@@ -1,17 +1,26 @@
 import React, { useState, useEffect } from "react";
-import LoginView from "./views/LoginView";
-import WizardView from "./views/WizardView";
-import HomeView from "./views/HomeView";
-import TransferView from "./views/TransferView";
-import ReceiveView from "./views/ReceiveView";
-import PayServicesView from "./views/PayServicesView";
-import AccountsView from "./views/AccountsView";
-import CardsView from "./views/CardsView";
-import SignupView from "./views/SignupView";
+// Importar v3
+import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
+import { getAccessibilityProfile } from "./services/profileService.js";
+
+// Vistas v3
+import LoginView from "./views/LoginView.jsx";
+import SignupView from "./views/SignupView.jsx";
+import WizardView from "./views/WizardView.jsx";
+import HomeView from "./views/HomeView.jsx";
+import TransferView from "./views/TransferView.jsx";
+import ReceiveView from "./views/ReceiveView.jsx";
+import PayServicesView from "./views/PayServicesView.jsx";
+import AccountsView from "./views/AccountsView.jsx";
+import CardsView from "./views/CardsView.jsx";
+
+// (Asumo que tienes estos componentes de 'StepWrapper' y 'LoadingView')
+// import LoadingView from "./components/LoadingView.jsx";
 
 const App = () => {
-  // "login" | "signup" | "wizard" | "home" | "transfer" | "receive" | "pay" | "accounts" | "cards"
+  // "login" | "signup" | "wizard" | "home" | ...
   const [currentView, setCurrentView] = useState("login");
+  const { token, logout } = useAuth(); // Usar v3
 
   const [userSettings, setUserSettings] = useState({
     theme: "white",
@@ -34,17 +43,47 @@ const App = () => {
     }
   }, []);
 
+  // Esta es la validación que funciona DESPUÉS del login
+  const handleLoginSuccess = async () => {
+    try {
+      const response = await getAccessibilityProfile(); // Llama a v3
+      const profile = response.data;
+
+      if (profile.alias) {
+        setHasCompletedWizard(true);
+        setUserSettings(profile);
+        setCurrentView("home");
+      } else {
+        setHasCompletedWizard(false);
+        // Pasamos el perfil vacío (con 'user_id' etc.) al wizard
+        setUserSettings(profile);
+        setCurrentView("wizard");
+      }
+    } catch (error) {
+      console.error("Error al verificar perfil, enviando a wizard:", error);
+      setHasCompletedWizard(false);
+      setCurrentView("wizard");
+    }
+  };
+
+  // Se llama desde SignupView
+  const handleSignupSuccess = () => {
+    setHasCompletedWizard(false);
+    setCurrentView("wizard");
+  };
+
+  // Se llama desde WizardView
   const handleFinishWizard = (finalSettings) => {
+    // Los 'finalSettings' ahora vienen del wizard,
+    // (combinando respuestas manuales + IA)
     setUserSettings(finalSettings);
     localStorage.setItem("appTheme", finalSettings.theme);
     setHasCompletedWizard(true);
     setCurrentView("home");
   };
 
-  const handleLoginSuccess = () => {
-    if (hasCompletedWizard) setCurrentView("home");
-    else setCurrentView("wizard");
-  };
+  // --- Renderizado de Vistas ---
+  // (Este switch/case gigante es lo que tenías)
 
   return (
     <>
@@ -54,26 +93,21 @@ const App = () => {
           onLoginSuccess={handleLoginSuccess}
           onShowQuestionnaire={() => setCurrentView("wizard")}
           hasSeenQuestionnaire={hasCompletedWizard}
-          // 👇 NUEVO: botón "Crear cuenta"
           onGoToSignup={() => setCurrentView("signup")}
         />
       )}
 
-      {/* 👇 NUEVO: caso de registro */}
       {currentView === "signup" && (
         <SignupView
           userSettings={userSettings}
           onBackToLogin={() => setCurrentView("login")}
-          onSignupSuccess={() => {
-            // Puedes llevar a wizard o directo al home
-            setCurrentView("wizard"); // o: setCurrentView("home")
-          }}
+          onSignupSuccess={handleSignupSuccess}
         />
       )}
 
       {currentView === "wizard" && (
         <WizardView
-          userSettings={userSettings}
+          userSettings={userSettings} // Pasamos los settings (vacíos o con datos)
           onFinish={handleFinishWizard}
         />
       )}
@@ -127,4 +161,13 @@ const App = () => {
   );
 };
 
-export default App;
+// Necesitas exportar la App envuelta en el Provider
+// Este sería tu 'main.jsx' o un wrapper
+const AppWrapper = () => (
+  <AuthProvider>
+    <App />
+  </AuthProvider>
+);
+
+// export default App; // <-- No exportes App directamente
+export default AppWrapper; // <-- Exporta el Wrapper

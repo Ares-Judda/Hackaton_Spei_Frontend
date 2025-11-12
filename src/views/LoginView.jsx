@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import StepWrapper from "../components/StepWrapper";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const LoginView = ({ userSettings, onLoginSuccess, onGoToSignup }) => {
   const [email, setEmail] = useState("");
@@ -25,8 +25,7 @@ const LoginView = ({ userSettings, onLoginSuccess, onGoToSignup }) => {
 
     try {
       await login(email, password);
-
-      onLoginSuccess();
+      onLoginSuccess(); // App.jsx v3 se encargará de la validación
     } catch (err) {
       if (err && err.message) {
         setError(err.message);
@@ -223,7 +222,7 @@ const LoginView = ({ userSettings, onLoginSuccess, onGoToSignup }) => {
           </button>
         </form>
 
-        <div style={{ marginTop: 8, fontSize: ".9rem", opacity: .9 }}>
+        <div style={{ marginTop: 8, fontSize: ".9rem", opacity: 0.9 }}>
           ¿No tienes cuenta?{" "}
           <button
             type="button"
