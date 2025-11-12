@@ -3,6 +3,19 @@ import { FaBolt, FaTint, FaWifi, FaPhone, FaPlus } from "react-icons/fa";
 import logo from "../assets/logo.png";
 
 export default function PayServicesView({ userSettings, onBack }) {
+  // ===== Función de lectura en voz =====
+  const speakText = (text) => {
+    if (typeof window === "undefined") return;
+    if (!("speechSynthesis" in window)) {
+      console.warn("speechSynthesis no disponible en este navegador.");
+      return;
+    }
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "es-MX";
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  };
+
   // ===== Servicios predefinidos =====
   const presets = [
     { id: "agua", label: "Agua", icon: <FaTint /> },
@@ -49,9 +62,7 @@ export default function PayServicesView({ userSettings, onBack }) {
 
   const [form, setForm] = useState({
     amountStr: "",
-    // preset
     refPreset: "",
-    // custom
     customName: "",
     customConvenio: "",
     customRef: "",
@@ -59,15 +70,13 @@ export default function PayServicesView({ userSettings, onBack }) {
 
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
-  const [toast, setToast] = useState(null); // {type, msg}
+  const [toast, setToast] = useState(null);
   const [successOpen, setSuccessOpen] = useState(false);
 
   const setField = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const toNumber = (v) => {
-    const x = String(v)
-      .replace(",", ".")
-      .replace(/[^\d.]/g, "");
+    const x = String(v).replace(",", ".").replace(/[^\d.]/g, "");
     const n = Number.parseFloat(x);
     return Number.isFinite(n) ? n : 0;
   };
@@ -87,7 +96,7 @@ export default function PayServicesView({ userSettings, onBack }) {
   const summaryConvenio =
     mode === "preset" ? "(automático)" : form.customConvenio || "-";
 
-  // ===== Estilos (coherentes con Home/Transfer/Accounts/Receive) =====
+  // ===== Estilos =====
   const theme = userSettings?.theme;
   const isDark = theme === "dark";
   const isHighContrast = theme === "high-contrast";
@@ -135,12 +144,7 @@ export default function PayServicesView({ userSettings, onBack }) {
       ? "0 4px 10px rgba(0,0,0,0.25)"
       : "0 4px 10px rgba(0,0,0,0.08)",
   };
-  const legend = {
-    fontSize: "0.95rem",
-    fontWeight: 700,
-    marginBottom: 8,
-    color: textColor,
-  };
+  const legend = { fontSize: "0.95rem", fontWeight: 700, marginBottom: 8, color: textColor };
   const label = { fontSize: fontSizeBase, fontWeight: 700, color: textColor };
   const input = {
     width: "100%",
@@ -207,20 +211,18 @@ export default function PayServicesView({ userSettings, onBack }) {
     fontSize: "0.95rem",
     border:
       type === "success" ? "1px solid #86efac" :
-        type === "error" ? "1px solid #fca5a5" :
-          `1px solid ${borderColor}`,
+      type === "error" ? "1px solid #fca5a5" :
+      `1px solid ${borderColor}`,
     background:
       type === "success" ? (isDark ? "#052e1b" : "#f0fdf4") :
-        type === "error" ? (isDark ? "#3a0d0d" : "#fef2f2") :
-          (isDark ? "#0b1220" : "#eff6ff"),
+      type === "error" ? (isDark ? "#3a0d0d" : "#fef2f2") :
+      (isDark ? "#0b1220" : "#eff6ff"),
     color: textColor,
   });
 
   // Hovers/press
-  const onHoverIn = (e) =>
-    (e.currentTarget.style.backgroundColor = buttonHover);
-  const onHoverOut = (e) =>
-    (e.currentTarget.style.backgroundColor = accentColor);
+  const onHoverIn = (e) => (e.currentTarget.style.backgroundColor = buttonHover);
+  const onHoverOut = (e) => (e.currentTarget.style.backgroundColor = accentColor);
   const onPressIn = (e) => (e.currentTarget.style.transform = "scale(0.98)");
   const onPressOut = (e) => (e.currentTarget.style.transform = "scale(1)");
 
@@ -255,16 +257,19 @@ export default function PayServicesView({ userSettings, onBack }) {
     ev?.preventDefault?.();
     if (!validate()) {
       setToast({ type: "error", msg: "Revisa los campos marcados." });
+      speakText("Revisa los campos marcados, hay errores.");
       return;
     }
     setSubmitting(true);
     try {
       await new Promise((r) => setTimeout(r, 900));
       setToast({ type: "success", msg: "Pago realizado correctamente" });
+      speakText("Pago realizado correctamente.");
       setSuccessOpen(true);
       setForm((f) => ({ ...f, amountStr: "" }));
     } catch (e) {
       setToast({ type: "error", msg: "No se pudo completar el pago." });
+      speakText("No se pudo completar el pago.");
     } finally {
       setSubmitting(false);
     }
@@ -275,16 +280,13 @@ export default function PayServicesView({ userSettings, onBack }) {
     <div style={container}>
       <div style={shell}>
         <div style={{ position: "relative", marginBottom: "25px" }}>
-          {/* Botón volver en esquina superior izquierda */}
           {onBack && (
             <button
-              onClick={onBack}
-              style={{
-                ...ghostBtn,
-                position: "absolute",
-                top: 0,
-                left: 0,
+              onClick={() => {
+                onBack?.();
+                speakText("Volviendo a la pantalla anterior.");
               }}
+              style={{ ...ghostBtn, position: "absolute", top: 0, left: 0 }}
               onMouseDown={onPressIn}
               onMouseUp={onPressOut}
             >
@@ -292,7 +294,6 @@ export default function PayServicesView({ userSettings, onBack }) {
             </button>
           )}
 
-          {/* Logo centrado con texto a la derecha */}
           <div
             style={{
               display: "flex",
@@ -311,7 +312,7 @@ export default function PayServicesView({ userSettings, onBack }) {
                 borderRadius: "50%",
                 objectFit: "cover",
                 backgroundColor: "white",
-                marginBottom: "-15px", // opcional
+                marginBottom: "-15px",
               }}
             />
             <p>B-Accesible</p>
@@ -331,15 +332,14 @@ export default function PayServicesView({ userSettings, onBack }) {
             {sourceAccounts.map((acc) => (
               <button
                 key={acc.id}
-                onClick={() => setSelectedSourceId(acc.id)}
+                onClick={() => {
+                  setSelectedSourceId(acc.id);
+                  speakText(`Seleccionaste ${acc.alias} como cuenta de origen`);
+                }}
                 style={sourceChip(selectedSourceId === acc.id)}
                 aria-label={`Usar ${acc.alias} como cuenta de origen`}
-                onMouseDown={(e) =>
-                  (e.currentTarget.style.transform = "scale(0.98)")
-                }
-                onMouseUp={(e) =>
-                  (e.currentTarget.style.transform = "scale(1)")
-                }
+                onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
+                onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
               >
                 <div style={{ fontWeight: 700 }}>{acc.alias}</div>
                 <div style={{ fontSize: "0.9rem", color: subtleText }}>
@@ -358,14 +358,20 @@ export default function PayServicesView({ userSettings, onBack }) {
           <div style={legend}>Tipo de servicio</div>
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <button
-              onClick={() => setMode("preset")}
+              onClick={() => {
+                setMode("preset");
+                speakText("Modo servicios predefinidos seleccionado");
+              }}
               style={chip(mode === "preset")}
             >
               <div style={{ fontWeight: 700 }}>Servicios</div>
               <div style={small}>Agua/Luz/Internet</div>
             </button>
             <button
-              onClick={() => setMode("custom")}
+              onClick={() => {
+                setMode("custom");
+                speakText("Modo servicio personalizado seleccionado");
+              }}
               style={chip(mode === "custom")}
             >
               <div
@@ -394,7 +400,10 @@ export default function PayServicesView({ userSettings, onBack }) {
                 {presets.map((p) => (
                   <button
                     key={p.id}
-                    onClick={() => setSelectedService(p.id)}
+                    onClick={() => {
+                      setSelectedService(p.id);
+                      speakText(`Seleccionaste ${p.label}`);
+                    }}
                     style={chip(selectedService === p.id)}
                     aria-label={`Seleccionar ${p.label}`}
                   >
@@ -414,6 +423,11 @@ export default function PayServicesView({ userSettings, onBack }) {
                   value={form.refPreset}
                   onChange={(e) => setField("refPreset", e.target.value)}
                   placeholder="Ej. Número de contrato/servicio"
+                  onFocus={() =>
+                    speakText(
+                      "Ingresa la referencia de tu servicio predefinido, por ejemplo el número de contrato"
+                    )
+                  }
                 />
                 {errors.refPreset && (
                   <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
@@ -434,6 +448,9 @@ export default function PayServicesView({ userSettings, onBack }) {
                   value={form.customName}
                   onChange={(e) => setField("customName", e.target.value)}
                   placeholder="Ej. Agua Municipal Xalapa"
+                  onFocus={() =>
+                    speakText("Ingresa el nombre del servicio personalizado")
+                  }
                 />
                 {errors.customName && (
                   <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
@@ -458,6 +475,7 @@ export default function PayServicesView({ userSettings, onBack }) {
                     )
                   }
                   placeholder="Solo dígitos"
+                  onFocus={() => speakText("Ingresa el número de convenio")}
                 />
                 {errors.customConvenio && (
                   <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
@@ -476,6 +494,9 @@ export default function PayServicesView({ userSettings, onBack }) {
                   value={form.customRef}
                   onChange={(e) => setField("customRef", e.target.value)}
                   placeholder="Número de referencia del servicio"
+                  onFocus={() =>
+                    speakText("Ingresa la referencia del servicio personalizado")
+                  }
                 />
                 {errors.customRef && (
                   <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
@@ -500,21 +521,19 @@ export default function PayServicesView({ userSettings, onBack }) {
             value={form.amountStr}
             onChange={(e) => setField("amountStr", e.target.value)}
             placeholder="0.00"
+            onFocus={() => speakText("Ingresa la cantidad a pagar en pesos")}
           />
           <p style={small}>
             {amount ? `Se pagarán ${toMXN(amount)}` : "Ej. 350.00"}
             {selectedSource && amount > 0 && (
               <>
                 {" "}
-                · Saldo en {selectedSource.alias}:{" "}
-                <b>{toMXN(selectedSource.balance)}</b>
+                · Saldo en {selectedSource.alias}: <b>{toMXN(selectedSource.balance)}</b>
               </>
             )}
           </p>
           {errors.amountStr && (
-            <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
-              {errors.amountStr}
-            </p>
+            <p style={{ fontSize: "0.85rem", color: "#f87171" }}>{errors.amountStr}</p>
           )}
         </div>
 
@@ -523,8 +542,7 @@ export default function PayServicesView({ userSettings, onBack }) {
           <div style={legend}>Resumen</div>
           <div style={{ fontSize: "0.95rem", color: subtleText }}>
             <div>
-              <b>Cuenta de origen:</b> {selectedSource?.alias} ·{" "}
-              {selectedSource?.bank} · **** {selectedSource?.number.slice(-4)}
+              <b>Cuenta de origen:</b> {selectedSource?.alias} · {selectedSource?.bank} · **** {selectedSource?.number.slice(-4)}
             </div>
             <div>
               <b>Servicio:</b> {summaryName}
@@ -542,16 +560,15 @@ export default function PayServicesView({ userSettings, onBack }) {
         </div>
 
         {/* Acciones */}
-        <div
-          style={{ display: "flex", justifyContent: "space-between", gap: 10 }}
-        >
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
           <button
-            onClick={onBack}
+            onClick={() => {
+              onBack?.();
+              speakText("Cancelando pago y volviendo al inicio");
+            }}
             style={ghostBtn}
-            onMouseDown={(e) =>
-              (e.currentTarget.style.transform = "scale(0.98)")
-            }
-            onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            onMouseDown={onPressIn}
+            onMouseUp={onPressOut}
           >
             Cancelar
           </button>
@@ -571,11 +588,6 @@ export default function PayServicesView({ userSettings, onBack }) {
             {submitting ? "Procesando..." : "Pagar ahora"}
           </button>
         </div>
-
-        {/* Toast */}
-        {toast && toast.type !== "success" && (
-          <div style={toastBox(toast.type)}>{toast.msg}</div>
-        )}
 
         {/* Modal de éxito */}
         {successOpen && (
@@ -605,21 +617,11 @@ export default function PayServicesView({ userSettings, onBack }) {
                 color: textColor,
               }}
             >
-              <div style={{ fontSize: 40, lineHeight: 1, marginBottom: 8 }}>
-                ✅
-              </div>
-              <h3
-                style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 6 }}
-              >
+              <div style={{ fontSize: 40, lineHeight: 1, marginBottom: 8 }}>✅</div>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 6 }}>
                 ¡Pago realizado!
               </h3>
-              <p
-                style={{
-                  color: subtleText,
-                  fontSize: "0.95rem",
-                  marginBottom: 12,
-                }}
-              >
+              <p style={{ color: subtleText, fontSize: "0.95rem", marginBottom: 12 }}>
                 Tu pago se realizó correctamente.
               </p>
               <div
@@ -635,8 +637,7 @@ export default function PayServicesView({ userSettings, onBack }) {
                 }}
               >
                 <div>
-                  <b>Cuenta de origen:</b> {selectedSource?.alias} · ****{" "}
-                  {selectedSource?.number.slice(-4)}
+                  <b>Cuenta de origen:</b> {selectedSource?.alias} · **** {selectedSource?.number.slice(-4)}
                 </div>
                 <div>
                   <b>Servicio:</b> {summaryName}
@@ -654,18 +655,15 @@ export default function PayServicesView({ userSettings, onBack }) {
                   <b>Folio:</b> {`SIM-${Date.now().toString().slice(-6)}`}
                 </div>
               </div>
-              <div
-                style={{ display: "flex", gap: 8, justifyContent: "center" }}
-              >
+              <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
                 <button
-                  onClick={() => setSuccessOpen(false)}
+                  onClick={() => {
+                    setSuccessOpen(false);
+                    speakText("Preparado para hacer otro pago");
+                  }}
                   style={ghostBtn}
-                  onMouseDown={(e) =>
-                    (e.currentTarget.style.transform = "scale(0.98)")
-                  }
-                  onMouseUp={(e) =>
-                    (e.currentTarget.style.transform = "scale(1)")
-                  }
+                  onMouseDown={onPressIn}
+                  onMouseUp={onPressOut}
                 >
                   Hacer otro pago
                 </button>
@@ -673,6 +671,7 @@ export default function PayServicesView({ userSettings, onBack }) {
                   onClick={() => {
                     setSuccessOpen(false);
                     onBack?.();
+                    speakText("Volviendo al inicio");
                   }}
                   style={{ ...primaryBtn, backgroundColor: accentColor }}
                   onMouseEnter={onHoverIn}
