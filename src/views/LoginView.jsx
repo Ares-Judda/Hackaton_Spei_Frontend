@@ -4,7 +4,7 @@ import StepWrapper from "../components/StepWrapper";
 const LoginView = ({ userSettings, onLoginSuccess }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [theme, setTheme] = useState(userSettings?.theme || "light");
+  const [theme, setTheme] = useState(userSettings?.theme || "dark");
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("appTheme");
