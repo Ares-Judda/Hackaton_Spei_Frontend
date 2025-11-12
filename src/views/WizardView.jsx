@@ -16,7 +16,7 @@ function speakText(text) {
     u.lang = "es-MX";
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
-  } catch { }
+  } catch {}
 }
 
 async function fetchWithRetry(fetchFn, maxRetries = 3, baseDelay = 1500) {
@@ -60,8 +60,11 @@ function mapAiThemeToDb(aiTheme, currentTheme) {
 
 const WizardView = ({ onFinish, userSettings: initialSettings }) => {
   const { user } = useAuth();
-  const { userSettings: rawSettings = {}, updateTheme, saveAnswer } =
-    useFormController(initialSettings);
+  const {
+    userSettings: rawSettings = {},
+    updateTheme,
+    saveAnswer,
+  } = useFormController(initialSettings);
 
   // Defaults
   const userSettings = {
@@ -79,6 +82,7 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
   };
 
   const isVoiceActive = !!userSettings.needsVoiceAssistant;
+  const fontSizeStyle = { fontSize: userSettings.fontSize };
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [loadingMsg, setLoadingMsg] = useState("");
@@ -97,7 +101,8 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
   const isDark = theme === "dark";
   const isHC = theme === "high-contrast";
 
-  const accentColor = userSettings.accentColor || (isHC ? "#19e6ff" : "#0078D4");
+  const accentColor =
+    userSettings.accentColor || (isHC ? "#19e6ff" : "#0078D4");
 
   // Fondo principal y texto
   const bgColor = isHC ? "#0f172a" : isDark ? "#0f172a" : "#f3f4f6";
@@ -106,7 +111,11 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
   // Controles
   const controlBg = isHC ? "#0b1220" : isDark ? "#0b1220" : "#ffffff";
   const controlText = textColor;
-  const controlBorderPassive = isHC ? "#19e6ff" : isDark ? "#334155" : "#d1d5db";
+  const controlBorderPassive = isHC
+    ? "#19e6ff"
+    : isDark
+    ? "#334155"
+    : "#d1d5db";
   const controlBorderActive = accentColor;
 
   // Sin card/bordes exteriores (como tu primera imagen)
@@ -119,9 +128,9 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
     padding: "12px",
     borderRadius: "10px",
     border: active
-      ? `2px solid ${controlBorderActive}`       // solo borde acento cuando está activo
+      ? `2px solid ${controlBorderActive}` // solo borde acento cuando está activo
       : `1px solid ${controlBorderPassive}`,
-    backgroundColor: controlBg,                  // nunca relleno con acento
+    backgroundColor: controlBg, // nunca relleno con acento
     color: controlText,
     fontWeight: 600,
     cursor: "pointer",
@@ -145,7 +154,9 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
     flex: 1,
     padding: "14px 18px",
     borderRadius: "10px",
-    border: active ? `2px solid ${controlBorderActive}` : `1px solid ${controlBorderPassive}`,
+    border: active
+      ? `2px solid ${controlBorderActive}`
+      : `1px solid ${controlBorderPassive}`,
     backgroundColor:
       t === "light" ? "#ffffff" : t === "dark" ? "#0b1220" : "#000000",
     color: t === "light" ? "#111827" : "#f9fafb",
@@ -159,6 +170,39 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       fn();
+    }
+  };
+
+  const handleFinish = async () => {
+    if (!user || !user.id) {
+      console.error(
+        "⚠️ No se encontró el usuario o el ID del usuario es nulo."
+      );
+      setErrorMsg("No se pudo obtener la información del usuario.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setErrorMsg("");
+      setLoadingMsg("Guardando tus preferencias...");
+
+      const aiTheme = await fetchWithRetry(() => getAiAccessibility(user.id));
+      const finalTheme = mapAiThemeToDb(aiTheme?.theme, userSettings.theme);
+
+      await updateAccessibilityProfile(user.id, {
+        ...userSettings,
+        theme: finalTheme,
+      });
+
+      setLoadingMsg("Configuración guardada con éxito.");
+      if (onFinish) onFinish();
+    } catch (err) {
+      console.error("Error en handleFinish:", err);
+      setErrorMsg("Hubo un problema al guardar tus datos.");
+    } finally {
+      setIsSubmitting(false);
+      setLoadingMsg("");
     }
   };
 
@@ -188,7 +232,13 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
             padding: "8px",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: "12px",
+            }}
+          >
             <img
               src={logo}
               alt="Logo B-accesible"
@@ -202,14 +252,23 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
             />
           </div>
 
-
-
           {/* Encabezado */}
           <header style={{ textAlign: "center", marginBottom: "4px" }}>
-            <h1 style={{ fontSize: "1.6rem", fontWeight: 700, color: accentColor }}>
+            <h1
+              style={{
+                fontSize: "1.6rem",
+                fontWeight: 700,
+                color: accentColor,
+              }}
+            >
               Cuestionario de Accesibilidad
             </h1>
-            <p style={{ fontSize: "0.95rem", opacity: isDark || isHC ? 0.85 : 0.75 }}>
+            <p
+              style={{
+                fontSize: "0.95rem",
+                opacity: isDark || isHC ? 0.85 : 0.75,
+              }}
+            >
               Ayúdanos a adaptar tu experiencia bancaria a tus necesidades.
             </p>
           </header>
@@ -223,15 +282,27 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
               {isVoiceActive && (
                 <button
                   aria-label="Reproducir pregunta asistente de voz"
-                  onClick={() => speakText("¿Necesitas apoyo de un asistente de voz?")}
-                  style={{ marginLeft: 8, background: "none", border: "none", cursor: "pointer", color: accentColor }}
+                  onClick={() =>
+                    speakText("¿Necesitas apoyo de un asistente de voz?")
+                  }
+                  style={{
+                    marginLeft: 8,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: accentColor,
+                  }}
                 >
                   🔊
                 </button>
               )}
             </div>
 
-            <div role="group" aria-label="Seleccionar si necesita asistente de voz" style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+            <div
+              role="group"
+              aria-label="Seleccionar si necesita asistente de voz"
+              style={{ display: "flex", gap: "10px", marginTop: "10px" }}
+            >
               {[
                 { label: "Sí", value: true },
                 { label: "No", value: false },
@@ -244,7 +315,11 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
                     tabIndex={0}
                     aria-pressed={active}
                     onClick={() => saveAnswer("needsVoiceAssistant", opt.value)}
-                    onKeyDown={(e) => handleKeyActivate(e, () => saveAnswer("needsVoiceAssistant", opt.value))}
+                    onKeyDown={(e) =>
+                      handleKeyActivate(e, () =>
+                        saveAnswer("needsVoiceAssistant", opt.value)
+                      )
+                    }
                     onMouseEnter={() => isVoiceActive && speakText(opt.label)}
                     onFocus={() => isVoiceActive && speakText(opt.label)}
                     style={pillStyle(active)}
@@ -259,12 +334,20 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
           {/* 2. Nombre */}
           <section aria-labelledby="q-name">
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <h2 id="q-name" style={{ margin: 0, ...fontSizeStyle }}>¿Cómo te llamamos?</h2>
+              <h2 id="q-name" style={{ margin: 0, ...fontSizeStyle }}>
+                ¿Cómo te llamamos?
+              </h2>
               {isVoiceActive && (
                 <button
                   aria-label="Reproducir pregunta nombre"
                   onClick={() => speakText("¿Cómo te llamamos?")}
-                  style={{ marginLeft: 8, background: "none", border: "none", cursor: "pointer", color: accentColor }}
+                  style={{
+                    marginLeft: 8,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: accentColor,
+                  }}
                 >
                   🔊
                 </button>
@@ -275,7 +358,10 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
               placeholder="Ej. María"
               value={userSettings.name}
               onChange={(e) => saveAnswer("name", e.target.value)}
-              onFocus={() => isVoiceActive && speakText(`Nombre, actualmente ${userSettings.name || "vacío"}`)}
+              onFocus={() =>
+                isVoiceActive &&
+                speakText(`Nombre, actualmente ${userSettings.name || "vacío"}`)
+              }
               style={fieldStyle}
             />
           </section>
@@ -283,12 +369,20 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
           {/* 3. Edad */}
           <section aria-labelledby="q-age">
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <h2 id="q-age" style={{ margin: 0, ...fontSizeStyle }}>Tu rango de edad</h2>
+              <h2 id="q-age" style={{ margin: 0, ...fontSizeStyle }}>
+                Tu rango de edad
+              </h2>
               {isVoiceActive && (
                 <button
                   aria-label="Reproducir pregunta edad"
                   onClick={() => speakText("Tu rango de edad")}
-                  style={{ marginLeft: 8, background: "none", border: "none", cursor: "pointer", color: accentColor }}
+                  style={{
+                    marginLeft: 8,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: accentColor,
+                  }}
                 >
                   🔊
                 </button>
@@ -298,7 +392,10 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
               aria-label="Seleccionar rango de edad"
               value={userSettings.ageRange}
               onChange={(e) => saveAnswer("ageRange", e.target.value)}
-              onFocus={() => isVoiceActive && speakText(`Rango de edad seleccionado ${userSettings.ageRange}`)}
+              onFocus={() =>
+                isVoiceActive &&
+                speakText(`Rango de edad seleccionado ${userSettings.ageRange}`)
+              }
               style={fieldStyle}
             >
               <option value="18_30">18 a 30 años</option>
@@ -311,18 +408,30 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
           {/* 4. Lectura */}
           <section aria-labelledby="q-reading">
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <h2 id="q-reading" style={{ margin: 0, ...fontSizeStyle }}>¿Te cuesta leer texto pequeño?</h2>
+              <h2 id="q-reading" style={{ margin: 0, ...fontSizeStyle }}>
+                ¿Te cuesta leer texto pequeño?
+              </h2>
               {isVoiceActive && (
                 <button
                   aria-label="Reproducir pregunta texto pequeño"
                   onClick={() => speakText("¿Te cuesta leer texto pequeño?")}
-                  style={{ marginLeft: 8, background: "none", border: "none", cursor: "pointer", color: accentColor }}
+                  style={{
+                    marginLeft: 8,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: accentColor,
+                  }}
                 >
                   🔊
                 </button>
               )}
             </div>
-            <div role="group" aria-label="Preferencia de tamaño de letra" style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+            <div
+              role="group"
+              aria-label="Preferencia de tamaño de letra"
+              style={{ display: "flex", gap: "10px", marginTop: "8px" }}
+            >
               {[
                 { label: "Sí, prefiero letra grande", value: false },
                 { label: "No, puedo leer bien", value: true },
@@ -335,7 +444,11 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
                     tabIndex={0}
                     aria-pressed={active}
                     onClick={() => saveAnswer("canReadSmallText", opt.value)}
-                    onKeyDown={(e) => handleKeyActivate(e, () => saveAnswer("canReadSmallText", opt.value))}
+                    onKeyDown={(e) =>
+                      handleKeyActivate(e, () =>
+                        saveAnswer("canReadSmallText", opt.value)
+                      )
+                    }
                     onMouseEnter={() => isVoiceActive && speakText(opt.label)}
                     onFocus={() => isVoiceActive && speakText(opt.label)}
                     style={pillStyle(active)}
@@ -350,18 +463,30 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
           {/* 5. Lector de pantalla */}
           <section aria-labelledby="q-screenreader">
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <h2 id="q-screenreader" style={{ margin: 0, ...fontSizeStyle }}>¿Usas lector de pantalla?</h2>
+              <h2 id="q-screenreader" style={{ margin: 0, ...fontSizeStyle }}>
+                ¿Usas lector de pantalla?
+              </h2>
               {isVoiceActive && (
                 <button
                   aria-label="Reproducir pregunta lector de pantalla"
                   onClick={() => speakText("¿Usas lector de pantalla?")}
-                  style={{ marginLeft: 8, background: "none", border: "none", cursor: "pointer", color: accentColor }}
+                  style={{
+                    marginLeft: 8,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: accentColor,
+                  }}
                 >
                   🔊
                 </button>
               )}
             </div>
-            <div role="group" aria-label="Usa lector de pantalla" style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+            <div
+              role="group"
+              aria-label="Usa lector de pantalla"
+              style={{ display: "flex", gap: "10px", marginTop: "8px" }}
+            >
               {[
                 { label: "Sí", value: true },
                 { label: "No", value: false },
@@ -374,7 +499,11 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
                     tabIndex={0}
                     aria-pressed={active}
                     onClick={() => saveAnswer("usesScreenReader", opt.value)}
-                    onKeyDown={(e) => handleKeyActivate(e, () => saveAnswer("usesScreenReader", opt.value))}
+                    onKeyDown={(e) =>
+                      handleKeyActivate(e, () =>
+                        saveAnswer("usesScreenReader", opt.value)
+                      )
+                    }
                     onMouseEnter={() => isVoiceActive && speakText(opt.label)}
                     onFocus={() => isVoiceActive && speakText(opt.label)}
                     style={pillStyle(active)}
@@ -389,12 +518,22 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
           {/* 6. Confianza */}
           <section aria-labelledby="q-confidence">
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <h2 id="q-confidence" style={{ margin: 0, ...fontSizeStyle }}>¿Qué tan cómoda te sientes usando apps?</h2>
+              <h2 id="q-confidence" style={{ margin: 0, ...fontSizeStyle }}>
+                ¿Qué tan cómoda te sientes usando apps?
+              </h2>
               {isVoiceActive && (
                 <button
                   aria-label="Reproducir pregunta confianza"
-                  onClick={() => speakText("¿Qué tan cómoda te sientes usando apps?")}
-                  style={{ marginLeft: 8, background: "none", border: "none", cursor: "pointer", color: accentColor }}
+                  onClick={() =>
+                    speakText("¿Qué tan cómoda te sientes usando apps?")
+                  }
+                  style={{
+                    marginLeft: 8,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: accentColor,
+                  }}
                 >
                   🔊
                 </button>
@@ -404,7 +543,10 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
               aria-label="Nivel de confianza usando aplicaciones"
               value={userSettings.confidence}
               onChange={(e) => saveAnswer("confidence", e.target.value)}
-              onFocus={() => isVoiceActive && speakText(`Nivel de confianza ${userSettings.confidence}`)}
+              onFocus={() =>
+                isVoiceActive &&
+                speakText(`Nivel de confianza ${userSettings.confidence}`)
+              }
               style={fieldStyle}
             >
               <option value="low">Me cuesta bastante</option>
@@ -422,8 +564,18 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
               {isVoiceActive && (
                 <button
                   aria-label="Reproducir pregunta lectura y escritura"
-                  onClick={() => speakText("¿Qué tan fácil es para ti leer y escribir mensajes?")}
-                  style={{ marginLeft: 8, background: "none", border: "none", cursor: "pointer", color: accentColor }}
+                  onClick={() =>
+                    speakText(
+                      "¿Qué tan fácil es para ti leer y escribir mensajes?"
+                    )
+                  }
+                  style={{
+                    marginLeft: 8,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: accentColor,
+                  }}
                 >
                   🔊
                 </button>
@@ -433,10 +585,17 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
               aria-label="Nivel de alfabetización/lectura y escritura"
               value={userSettings.literacy}
               onChange={(e) => saveAnswer("literacy", e.target.value)}
-              onFocus={() => isVoiceActive && speakText(`Nivel de lectura seleccionado ${userSettings.literacy}`)}
+              onFocus={() =>
+                isVoiceActive &&
+                speakText(
+                  `Nivel de lectura seleccionado ${userSettings.literacy}`
+                )
+              }
               style={fieldStyle}
             >
-              <option value="low">Me cuesta leer o escribir mensajes largos</option>
+              <option value="low">
+                Me cuesta leer o escribir mensajes largos
+              </option>
               <option value="medium">A veces me cuesta</option>
               <option value="high">No tengo problemas</option>
             </select>
@@ -445,21 +604,38 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
           {/* 8. Tema */}
           <section aria-labelledby="q-theme">
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <h2 id="q-theme" style={{ margin: 0, ...fontSizeStyle }}>Selecciona tema</h2>
+              <h2 id="q-theme" style={{ margin: 0, ...fontSizeStyle }}>
+                Selecciona tema
+              </h2>
               {isVoiceActive && (
                 <button
                   aria-label="Reproducir pregunta tema"
                   onClick={() => speakText("Selecciona tema")}
-                  style={{ marginLeft: 8, background: "none", border: "none", cursor: "pointer", color: accentColor }}
+                  style={{
+                    marginLeft: 8,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: accentColor,
+                  }}
                 >
                   🔊
                 </button>
               )}
             </div>
-            <div style={{ display: "flex", gap: 10, marginTop: "8px" }} role="group" aria-label="Selector de tema">
+            <div
+              style={{ display: "flex", gap: 10, marginTop: "8px" }}
+              role="group"
+              aria-label="Selector de tema"
+            >
               {["light", "dark", "high-contrast"].map((t) => {
                 const active = userSettings.theme === t;
-                const label = t === "light" ? "Claro" : t === "dark" ? "Oscuro" : "Alto Contraste";
+                const label =
+                  t === "light"
+                    ? "Claro"
+                    : t === "dark"
+                    ? "Oscuro"
+                    : "Alto Contraste";
                 return (
                   <div
                     key={t}
@@ -467,7 +643,9 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
                     tabIndex={0}
                     aria-pressed={active}
                     onClick={() => updateTheme(t)}
-                    onKeyDown={(e) => handleKeyActivate(e, () => updateTheme(t))}
+                    onKeyDown={(e) =>
+                      handleKeyActivate(e, () => updateTheme(t))
+                    }
                     onMouseEnter={() => isVoiceActive && speakText(label)}
                     onFocus={() => isVoiceActive && speakText(label)}
                     style={themeTileStyle(t, active)}
@@ -479,76 +657,75 @@ const WizardView = ({ onFinish, userSettings: initialSettings }) => {
             </div>
           </section>
 
-              
-            <section
+          <section
+            style={{
+              width: "100%",
+              textAlign: "center",
+              marginTop: "20px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
+            }}
+          >
+            {loadingMsg && !errorMsg && (
+              <div
+                style={{
+                  border: `1px solid ${accentColor}`,
+                  background: isDark ? "#1e3a5f" : "#dbeafe",
+                  color: isDark ? "#93c5fd" : "#1e40af",
+                  borderRadius: 12,
+                  padding: "10px",
+                  fontSize: ".9rem",
+                }}
+              >
+                {loadingMsg}
+              </div>
+            )}
+
+            {errorMsg && (
+              <div
+                role="alert"
+                style={{
+                  border: "1px solid #fca5a5",
+                  background: "#fef2f2",
+                  color: "#991b1b",
+                  borderRadius: 12,
+                  padding: "10px",
+                  fontSize: ".9rem",
+                }}
+              >
+                {errorMsg}
+              </div>
+            )}
+
+            <button
+              onClick={handleFinish}
+              disabled={isSubmitting}
               style={{
                 width: "100%",
-                textAlign: "center",
-                marginTop: "20px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "10px",
+                padding: "12px",
+                borderRadius: "12px",
+                border: "none",
+                backgroundColor: accentColor,
+                color: "#fff",
+                fontWeight: "600",
+                fontSize: "1rem",
+                cursor: isSubmitting ? "wait" : "pointer",
+                transition: "all 0.2s ease",
+                opacity: isSubmitting ? 0.7 : 1,
               }}
+              onMouseEnter={(e) =>
+                (e.target.style.backgroundColor = isSubmitting
+                  ? accentColor
+                  : "#005EA6")
+              }
+              onMouseLeave={(e) =>
+                (e.target.style.backgroundColor = accentColor)
+              }
             >
-              {loadingMsg && !errorMsg && (
-                <div
-                  style={{
-                    border: `1px solid ${accentColor}`,
-                    background: isDark ? "#1e3a5f" : "#dbeafe",
-                    color: isDark ? "#93c5fd" : "#1e40af",
-                    borderRadius: 12,
-                    padding: "10px",
-                    fontSize: ".9rem",
-                  }}
-                >
-                  {loadingMsg}
-                </div>
-              )}
-
-              {errorMsg && (
-                <div
-                  role="alert"
-                  style={{
-                    border: "1px solid #fca5a5",
-                    background: "#fef2f2",
-                    color: "#991b1b",
-                    borderRadius: 12,
-                    padding: "10px",
-                    fontSize: ".9rem",
-                  }}
-                >
-                  {errorMsg}
-                </div>
-              )}
-
-              <button
-                onClick={handleFinish}
-                disabled={isSubmitting}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  borderRadius: "12px",
-                  border: "none",
-                  backgroundColor: accentColor,
-                  color: "#fff",
-                  fontWeight: "600",
-                  fontSize: "1rem",
-                  cursor: isSubmitting ? "wait" : "pointer",
-                  transition: "all 0.2s ease",
-                  opacity: isSubmitting ? 0.7 : 1,
-                }}
-                onMouseEnter={(e) =>
-                  (e.target.style.backgroundColor = isSubmitting
-                    ? accentColor
-                    : "#005EA6")
-                }
-                onMouseLeave={(e) =>
-                  (e.target.style.backgroundColor = accentColor)
-                }
-              >
-                {isSubmitting ? "Guardando..." : "Finalizar"}
-              </button>
-            </section>
+              {isSubmitting ? "Guardando..." : "Finalizar"}
+            </button>
+          </section>
 
           <p
             style={{
