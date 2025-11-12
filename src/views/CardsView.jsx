@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import logo from "../assets/logo.png";
 import {
   FaCreditCard,
   FaUniversity,
@@ -24,7 +25,12 @@ export default function CardsView({ userSettings, onBack }) {
       external: false,
       movements: [
         { id: "m1", date: "2025-11-09", desc: "Amazon MX", amount: -599.0 },
-        { id: "m2", date: "2025-11-06", desc: "Pago recibido (bono)", amount: 1500.0 },
+        {
+          id: "m2",
+          date: "2025-11-06",
+          desc: "Pago recibido (bono)",
+          amount: 1500.0,
+        },
         { id: "m3", date: "2025-11-01", desc: "Spotify", amount: -129.0 },
       ],
     },
@@ -57,7 +63,12 @@ export default function CardsView({ userSettings, onBack }) {
       cvv: "321",
       external: true,
       movements: [
-        { id: "m6", date: "2025-11-07", desc: "Tienda departamental", amount: -1299.9 },
+        {
+          id: "m6",
+          date: "2025-11-07",
+          desc: "Tienda departamental",
+          amount: -1299.9,
+        },
         { id: "m7", date: "2025-11-02", desc: "Devolución", amount: 1299.9 },
       ],
     },
@@ -123,9 +134,11 @@ export default function CardsView({ userSettings, onBack }) {
     border: `1px solid ${borderColor}`,
     borderRadius: 18,
     padding: 16,
-    boxShadow: isDark ? "0 4px 10px rgba(0,0,0,0.25)" : "0 4px 10px rgba(0,0,0,0.08)",
+    boxShadow: isDark
+      ? "0 4px 10px rgba(0,0,0,0.25)"
+      : "0 4px 10px rgba(0,0,0,0.08)",
   };
-  const h1 = { fontSize: "1.4rem", fontWeight: 700, margin: 0 };
+  const h1 = { fontSize: "1.4rem", fontWeight: 700, margin: 0, textAlign: "center" };
   const label = { fontSize: fontSizeBase, fontWeight: 700, color: textColor };
   const small = { fontSize: "0.85rem", color: subtleText };
   const input = {
@@ -197,8 +210,10 @@ export default function CardsView({ userSettings, onBack }) {
   });
 
   // Hovers/press
-  const onHoverIn = (e) => (e.currentTarget.style.backgroundColor = buttonHover);
-  const onHoverOut = (e) => (e.currentTarget.style.backgroundColor = accentColor);
+  const onHoverIn = (e) =>
+    (e.currentTarget.style.backgroundColor = buttonHover);
+  const onHoverOut = (e) =>
+    (e.currentTarget.style.backgroundColor = accentColor);
   const onPressIn = (e) => (e.currentTarget.style.transform = "scale(0.98)");
   const onPressOut = (e) => (e.currentTarget.style.transform = "scale(1)");
 
@@ -210,7 +225,8 @@ export default function CardsView({ userSettings, onBack }) {
 
   const copyToClipboard = async (text, label) => {
     try {
-      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+      if (navigator.clipboard?.writeText)
+        await navigator.clipboard.writeText(text);
       else {
         const ta = document.createElement("textarea");
         ta.value = text;
@@ -231,7 +247,8 @@ export default function CardsView({ userSettings, onBack }) {
   const handleExpChange = (value) => {
     const digits = value.replace(/[^\d]/g, "").slice(0, 4);
     let formatted = digits;
-    if (digits.length >= 3) formatted = digits.slice(0, 2) + "/" + digits.slice(2);
+    if (digits.length >= 3)
+      formatted = digits.slice(0, 2) + "/" + digits.slice(2);
     setForm((f) => ({ ...f, exp: formatted }));
   };
 
@@ -314,29 +331,70 @@ export default function CardsView({ userSettings, onBack }) {
   };
 
   const toMXN = (n) =>
-    new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
+    new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN",
+    }).format(n || 0);
 
   // ===== UI =====
   return (
     <div style={container}>
       <div style={shell}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ position: "relative", marginBottom: "25px" }}>
+          {/* Botón volver en esquina superior izquierda */}
           {onBack && (
             <button
               onClick={onBack}
-              style={ghostBtn}
-              onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
-              onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+              style={{
+                ...ghostBtn,
+                position: "absolute",
+                top: 0,
+                left: 0,
+              }}
+              onMouseDown={onPressIn}
+              onMouseUp={onPressOut}
             >
               ← Volver
             </button>
           )}
-          <h1 style={h1}>Mis tarjetas</h1>
+
+          {/* Logo centrado con texto a la derecha */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "12px",
+              marginBottom: "-15px",
+            }}
+          >
+            <img
+              src={logo}
+              alt="Logo Banco Inclusivo"
+              style={{
+                width: "50px",
+                height: "50px",
+                borderRadius: "50%",
+                objectFit: "cover",
+                backgroundColor: "white",
+                marginBottom: "-15px", // opcional
+              }}
+            />
+            <p>B-Accesible</p>
+          </div>
         </div>
+
+        <h1 style={h1}>Mis Tarjetas</h1>
 
         {/* Controles encabezado */}
         <div style={fieldCard}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <span style={chip}>
               <FaCreditCard /> Tarjetas
             </span>
@@ -344,7 +402,12 @@ export default function CardsView({ userSettings, onBack }) {
               <button
                 onClick={() => setHideNumbers(!hideNumbers)}
                 aria-label="Ocultar/mostrar números"
-                style={{ border: "none", background: "transparent", cursor: "pointer", color: textColor }}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  cursor: "pointer",
+                  color: textColor,
+                }}
               >
                 {hideNumbers ? <FaEyeSlash /> : <FaEye />}
               </button>
@@ -364,7 +427,11 @@ export default function CardsView({ userSettings, onBack }) {
 
         {/* Tus tarjetas (propias) */}
         <div style={fieldCard}>
-          <div style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: 8 }}>Tus tarjetas</div>
+          <div
+            style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: 8 }}
+          >
+            Tus tarjetas
+          </div>
           {myCards.length === 0 ? (
             <div style={small}>No tienes tarjetas propias registradas.</div>
           ) : (
@@ -391,14 +458,36 @@ export default function CardsView({ userSettings, onBack }) {
                     color: textColor,
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
                     <div style={{ fontWeight: 700 }}>{c.alias}</div>
-                    <span style={{ ...small, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <span
+                      style={{
+                        ...small,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
                       <FaUniversity /> {c.bank}
                     </span>
                   </div>
-                  <div style={{ fontSize: 18, fontWeight: 700 }}>{maskNumber(c.number)}</div>
-                  <div style={{ display: "flex", gap: 12, color: subtleText, fontSize: "0.9rem" }}>
+                  <div style={{ fontSize: 18, fontWeight: 700 }}>
+                    {maskNumber(c.number)}
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 12,
+                      color: subtleText,
+                      fontSize: "0.9rem",
+                    }}
+                  >
                     <div>
                       <b>Titular:</b> {c.holder}
                     </div>
@@ -411,14 +500,30 @@ export default function CardsView({ userSettings, onBack }) {
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
-                      onClick={() => copyToClipboard(c.number, "Número de tarjeta")}
-                      style={{ ...ghostBtn, flex: 1, display: "flex", gap: 6, justifyContent: "center", alignItems: "center" }}
+                      onClick={() =>
+                        copyToClipboard(c.number, "Número de tarjeta")
+                      }
+                      style={{
+                        ...ghostBtn,
+                        flex: 1,
+                        display: "flex",
+                        gap: 6,
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
                     >
                       <FaCopy /> Copiar número
                     </button>
                     <button
                       onClick={() => openDetails(c)}
-                      style={{ ...ghostBtn, flex: 1, display: "flex", gap: 6, justifyContent: "center", alignItems: "center" }}
+                      style={{
+                        ...ghostBtn,
+                        flex: 1,
+                        display: "flex",
+                        gap: 6,
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
                     >
                       Ver detalles
                     </button>
@@ -446,7 +551,11 @@ export default function CardsView({ userSettings, onBack }) {
 
         {/* Tarjetas de otros bancos */}
         <div style={fieldCard}>
-          <div style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: 8 }}>Tarjetas de otros bancos</div>
+          <div
+            style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: 8 }}
+          >
+            Tarjetas de otros bancos
+          </div>
           {otherCards.length === 0 ? (
             <div style={small}>Aún no has vinculado tarjetas externas.</div>
           ) : (
@@ -464,14 +573,36 @@ export default function CardsView({ userSettings, onBack }) {
                     color: textColor,
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
                     <div style={{ fontWeight: 700 }}>{c.alias}</div>
-                    <span style={{ ...small, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <span
+                      style={{
+                        ...small,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
                       <FaUniversity /> {c.bank}
                     </span>
                   </div>
-                  <div style={{ fontSize: 18, fontWeight: 700 }}>{maskNumber(c.number)}</div>
-                  <div style={{ display: "flex", gap: 12, color: subtleText, fontSize: "0.9rem" }}>
+                  <div style={{ fontSize: 18, fontWeight: 700 }}>
+                    {maskNumber(c.number)}
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 12,
+                      color: subtleText,
+                      fontSize: "0.9rem",
+                    }}
+                  >
                     <div>
                       <b>Titular:</b> {c.holder}
                     </div>
@@ -484,14 +615,30 @@ export default function CardsView({ userSettings, onBack }) {
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
-                      onClick={() => copyToClipboard(c.number, "Número de tarjeta")}
-                      style={{ ...ghostBtn, flex: 1, display: "flex", gap: 6, justifyContent: "center", alignItems: "center" }}
+                      onClick={() =>
+                        copyToClipboard(c.number, "Número de tarjeta")
+                      }
+                      style={{
+                        ...ghostBtn,
+                        flex: 1,
+                        display: "flex",
+                        gap: 6,
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
                     >
                       <FaCopy /> Copiar número
                     </button>
                     <button
                       onClick={() => openDetails(c)}
-                      style={{ ...ghostBtn, flex: 1, display: "flex", gap: 6, justifyContent: "center", alignItems: "center" }}
+                      style={{
+                        ...ghostBtn,
+                        flex: 1,
+                        display: "flex",
+                        gap: 6,
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
                     >
                       Ver detalles
                     </button>
@@ -547,7 +694,9 @@ export default function CardsView({ userSettings, onBack }) {
                 boxShadow: "0 4px 10px rgba(0,0,0,0.25)",
               }}
             >
-              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 8 }}>
+              <h3
+                style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 8 }}
+              >
                 Añadir nueva tarjeta
               </h3>
 
@@ -557,21 +706,35 @@ export default function CardsView({ userSettings, onBack }) {
                   <input
                     style={input}
                     value={form.alias}
-                    onChange={(e) => setForm((f) => ({ ...f, alias: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, alias: e.target.value }))
+                    }
                     placeholder="Ej. Crédito Principal"
                   />
-                  {errors.alias && <p style={{ color: danger, fontSize: "0.85rem" }}>{errors.alias}</p>}
+                  {errors.alias && (
+                    <p style={{ color: danger, fontSize: "0.85rem" }}>
+                      {errors.alias}
+                    </p>
+                  )}
                 </div>
 
                 <div>
-                  <label style={label}>Titular (como aparece en la tarjeta)</label>
+                  <label style={label}>
+                    Titular (como aparece en la tarjeta)
+                  </label>
                   <input
                     style={input}
                     value={form.holder}
-                    onChange={(e) => setForm((f) => ({ ...f, holder: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, holder: e.target.value }))
+                    }
                     placeholder="Nombre Apellido"
                   />
-                  {errors.holder && <p style={{ color: danger, fontSize: "0.85rem" }}>{errors.holder}</p>}
+                  {errors.holder && (
+                    <p style={{ color: danger, fontSize: "0.85rem" }}>
+                      {errors.holder}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -579,10 +742,16 @@ export default function CardsView({ userSettings, onBack }) {
                   <input
                     style={input}
                     value={form.bank}
-                    onChange={(e) => setForm((f) => ({ ...f, bank: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, bank: e.target.value }))
+                    }
                     placeholder="Ej. Banco Inclusivo"
                   />
-                  {errors.bank && <p style={{ color: danger, fontSize: "0.85rem" }}>{errors.bank}</p>}
+                  {errors.bank && (
+                    <p style={{ color: danger, fontSize: "0.85rem" }}>
+                      {errors.bank}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -590,7 +759,9 @@ export default function CardsView({ userSettings, onBack }) {
                   <select
                     style={input}
                     value={form.brand}
-                    onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, brand: e.target.value }))
+                    }
                   >
                     <option>VISA</option>
                     <option>Mastercard</option>
@@ -607,15 +778,27 @@ export default function CardsView({ userSettings, onBack }) {
                     onChange={(e) =>
                       setForm((f) => ({
                         ...f,
-                        number: e.target.value.replace(/[^\d]/g, "").slice(0, 16),
+                        number: e.target.value
+                          .replace(/[^\d]/g, "")
+                          .slice(0, 16),
                       }))
                     }
                     placeholder="16 dígitos"
                   />
-                  {errors.number && <p style={{ color: danger, fontSize: "0.85rem" }}>{errors.number}</p>}
+                  {errors.number && (
+                    <p style={{ color: danger, fontSize: "0.85rem" }}>
+                      {errors.number}
+                    </p>
+                  )}
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 8,
+                  }}
+                >
                   <div>
                     <label style={label}>Vencimiento (MM/AA)</label>
                     <input
@@ -624,7 +807,11 @@ export default function CardsView({ userSettings, onBack }) {
                       onChange={(e) => handleExpChange(e.target.value)}
                       placeholder="MM/AA"
                     />
-                    {errors.exp && <p style={{ color: danger, fontSize: "0.85rem" }}>{errors.exp}</p>}
+                    {errors.exp && (
+                      <p style={{ color: danger, fontSize: "0.85rem" }}>
+                        {errors.exp}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label style={label}>CVV</label>
@@ -640,20 +827,34 @@ export default function CardsView({ userSettings, onBack }) {
                       }
                       placeholder="3 o 4 dígitos"
                     />
-                    {errors.cvv && <p style={{ color: danger, fontSize: "0.85rem" }}>{errors.cvv}</p>}
+                    {errors.cvv && (
+                      <p style={{ color: danger, fontSize: "0.85rem" }}>
+                        {errors.cvv}
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <label
+                  style={{ display: "flex", alignItems: "center", gap: 8 }}
+                >
                   <input
                     type="checkbox"
                     checked={form.external}
-                    onChange={(e) => setForm((f) => ({ ...f, external: e.target.checked }))}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, external: e.target.checked }))
+                    }
                   />
                   ¿Es de otro banco?
                 </label>
 
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: 8,
+                  }}
+                >
                   <button
                     type="button"
                     onClick={() => {
@@ -709,15 +910,23 @@ export default function CardsView({ userSettings, onBack }) {
                 color: textColor,
               }}
             >
-              <div style={{ fontSize: 40, lineHeight: 1, marginBottom: 8 }}>✅</div>
-              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 6 }}>
+              <div style={{ fontSize: 40, lineHeight: 1, marginBottom: 8 }}>
+                ✅
+              </div>
+              <h3
+                style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 6 }}
+              >
                 ¡Tarjeta guardada!
               </h3>
               <button
                 onClick={() => setSuccessOpen(false)}
                 style={ghostBtn}
-                onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
-                onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                onMouseDown={(e) =>
+                  (e.currentTarget.style.transform = "scale(0.98)")
+                }
+                onMouseUp={(e) =>
+                  (e.currentTarget.style.transform = "scale(1)")
+                }
               >
                 Aceptar
               </button>
@@ -752,7 +961,9 @@ export default function CardsView({ userSettings, onBack }) {
                 color: textColor,
               }}
             >
-              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 8 }}>
+              <h3
+                style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 8 }}
+              >
                 Detalles de tarjeta
               </h3>
 
@@ -765,9 +976,22 @@ export default function CardsView({ userSettings, onBack }) {
                   background: inputBg,
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
                   <div style={{ fontWeight: 700 }}>{detailCard.alias}</div>
-                  <span style={{ ...small, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    style={{
+                      ...small,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
                     <FaUniversity /> {detailCard.bank}
                   </span>
                 </div>
@@ -776,7 +1000,15 @@ export default function CardsView({ userSettings, onBack }) {
                     ? "•••• •••• •••• " + detailCard.number.slice(-4)
                     : detailCard.number.replace(/(\d{4})(?=\d)/g, "$1 ")}
                 </div>
-                <div style={{ display: "flex", gap: 12, color: subtleText, fontSize: "0.9rem", marginTop: 6 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 12,
+                    color: subtleText,
+                    fontSize: "0.9rem",
+                    marginTop: 6,
+                  }}
+                >
                   <div>
                     <b>Titular:</b> {detailCard.holder}
                   </div>
@@ -789,8 +1021,23 @@ export default function CardsView({ userSettings, onBack }) {
                 </div>
               </div>
 
-              <div style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: 6 }}>Movimientos</div>
-              <div style={{ display: "grid", gap: 8, maxHeight: 260, overflow: "auto" }}>
+              <div
+                style={{
+                  fontSize: "0.95rem",
+                  fontWeight: 700,
+                  marginBottom: 6,
+                }}
+              >
+                Movimientos
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gap: 8,
+                  maxHeight: 260,
+                  overflow: "auto",
+                }}
+              >
                 {(detailCard.movements || []).map((m) => (
                   <div
                     key={m.id}
@@ -803,26 +1050,47 @@ export default function CardsView({ userSettings, onBack }) {
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: "0.95rem", fontWeight: 700 }}>{m.desc}</div>
-                      <div style={small}>{new Date(m.date).toLocaleDateString("es-MX")}</div>
+                      <div style={{ fontSize: "0.95rem", fontWeight: 700 }}>
+                        {m.desc}
+                      </div>
+                      <div style={small}>
+                        {new Date(m.date).toLocaleDateString("es-MX")}
+                      </div>
                     </div>
-                    <div style={{ fontWeight: 700, color: m.amount >= 0 ? "#166534" : "#b91c1c" }}>
+                    <div
+                      style={{
+                        fontWeight: 700,
+                        color: m.amount >= 0 ? "#166534" : "#b91c1c",
+                      }}
+                    >
                       {m.amount >= 0 ? "+" : "-"}
                       {toMXN(Math.abs(m.amount))}
                     </div>
                   </div>
                 ))}
-                {(!detailCard.movements || detailCard.movements.length === 0) && (
+                {(!detailCard.movements ||
+                  detailCard.movements.length === 0) && (
                   <div style={small}>Sin movimientos.</div>
                 )}
               </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 8,
+                  marginTop: 12,
+                }}
+              >
                 <button
                   onClick={() => setDetailOpen(false)}
                   style={ghostBtn}
-                  onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
-                  onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                  onMouseDown={(e) =>
+                    (e.currentTarget.style.transform = "scale(0.98)")
+                  }
+                  onMouseUp={(e) =>
+                    (e.currentTarget.style.transform = "scale(1)")
+                  }
                 >
                   Cerrar
                 </button>

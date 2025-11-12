@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import StepWrapper from "../components/StepWrapper";
+import logo from "../assets/logo.png";
 
 const LoginView = ({ userSettings, onLoginSuccess }) => {
   const [email, setEmail] = useState("");
@@ -47,21 +48,26 @@ const LoginView = ({ userSettings, onLoginSuccess }) => {
         {/* 🔹 Logo */}
         <div
           style={{
-            width: "70px",
-            height: "70px",
+            width: "90px",
+            height: "90px",
             borderRadius: "50%",
-            backgroundColor: accentColor,
+            overflow: "hidden",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            textAlign: "center",
-            fontWeight: "bold",
-            color: "#fff",
-            fontSize: "1.5rem",
             marginBottom: "8px",
+            backgroundColor: "#ffffff", // opcional
           }}
         >
-          BI
+          <img
+            src={logo}
+            alt="Logo B-accesible"
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+          />
         </div>
 
         {/* 🔹 Título */}
@@ -72,7 +78,7 @@ const LoginView = ({ userSettings, onLoginSuccess }) => {
             marginBottom: "4px",
           }}
         >
-          Banco Inclusivo
+          B-Accesible
         </h1>
 
         <p

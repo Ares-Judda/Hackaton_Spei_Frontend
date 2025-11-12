@@ -1,18 +1,34 @@
 import React, { useEffect, useState } from "react";
 import { useTransferController } from "../controllers/useTransferController";
+import logo from "../assets/logo.png";
+import { CiTextAlignCenter } from "react-icons/ci";
 
 export default function TransferView({ userSettings, onBack }) {
   const {
     accounts,
-    form, errors, savedContacts, selectedContact, selectedSourceAccount,
-    amount, risk, submitting, toast, confirmOpen,
-    setField, submit, confirm, setConfirmOpen,
+    form,
+    errors,
+    savedContacts,
+    selectedContact,
+    selectedSourceAccount,
+    amount,
+    risk,
+    submitting,
+    toast,
+    confirmOpen,
+    setField,
+    submit,
+    confirm,
+    setConfirmOpen,
   } = useTransferController();
 
   const [successOpen, setSuccessOpen] = useState(false);
 
   const toMXN = (n) =>
-    new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
+    new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN",
+    }).format(n || 0);
 
   // ====== Tema y estilos ======
   const isDark = userSettings?.theme === "dark";
@@ -46,7 +62,12 @@ export default function TransferView({ userSettings, onBack }) {
   };
 
   const headerRow = { display: "flex", alignItems: "center", gap: "10px" };
-  const h1 = { fontSize: `calc(${fontSizeBase} * 1.5)`, fontWeight: 700, margin: 0 };
+  const h1 = {
+    fontSize: `calc(${fontSizeBase} * 1.5)`,
+    fontWeight: 700,
+    margin: 0,
+    textAlign: "center",
+  };
 
   const fieldset = {
     display: "grid",
@@ -55,7 +76,9 @@ export default function TransferView({ userSettings, onBack }) {
     border: `1px solid ${borderColor}`,
     borderRadius: "18px",
     padding: "16px",
-    boxShadow: isDark ? "0 4px 10px rgba(0,0,0,0.25)" : "0 4px 10px rgba(0,0,0,0.08)",
+    boxShadow: isDark
+      ? "0 4px 10px rgba(0,0,0,0.25)"
+      : "0 4px 10px rgba(0,0,0,0.08)",
   };
 
   const legend = {
@@ -67,7 +90,10 @@ export default function TransferView({ userSettings, onBack }) {
 
   const label = { fontSize: fontSizeBase, fontWeight: 600 };
   const hint = { fontSize: `calc(${fontSizeBase} * 0.85)`, color: subtleText };
-  const errorText = { fontSize: `calc(${fontSizeBase} * 0.85)`, color: "#f87171" };
+  const errorText = {
+    fontSize: `calc(${fontSizeBase} * 0.85)`,
+    color: "#f87171",
+  };
 
   const input = {
     width: "100%",
@@ -81,7 +107,12 @@ export default function TransferView({ userSettings, onBack }) {
     transition: "border-color 0.2s ease",
   };
 
-  const radioRow = { display: "flex", gap: "16px", alignItems: "center", color: textColor };
+  const radioRow = {
+    display: "flex",
+    gap: "16px",
+    alignItems: "center",
+    color: textColor,
+  };
 
   const primaryBtn = {
     border: "none",
@@ -113,20 +144,37 @@ export default function TransferView({ userSettings, onBack }) {
     padding: "10px",
     fontSize: fontSizeBase,
     border:
-      type === "success" ? "1px solid #86efac" :
-      type === "error"   ? "1px solid #fca5a5" :
-      type === "warn"    ? "1px solid #fde68a" : `1px solid ${borderColor}`,
+      type === "success"
+        ? "1px solid #86efac"
+        : type === "error"
+        ? "1px solid #fca5a5"
+        : type === "warn"
+        ? "1px solid #fde68a"
+        : `1px solid ${borderColor}`,
     background:
-      type === "success" ? (isDark ? "#052e1b" : "#f0fdf4") :
-      type === "error"   ? (isDark ? "#3a0d0d" : "#fef2f2") :
-      type === "warn"    ? (isDark ? "#3b2e05" : "#fffbeb") :
-                           (isDark ? "#0b1220" : "#eff6ff"),
+      type === "success"
+        ? isDark
+          ? "#052e1b"
+          : "#f0fdf4"
+        : type === "error"
+        ? isDark
+          ? "#3a0d0d"
+          : "#fef2f2"
+        : type === "warn"
+        ? isDark
+          ? "#3b2e05"
+          : "#fffbeb"
+        : isDark
+        ? "#0b1220"
+        : "#eff6ff",
     color: textColor,
   });
 
   // Hovers y clicks
-  const onHoverIn = (e) => (e.currentTarget.style.backgroundColor = buttonHover);
-  const onHoverOut = (e) => (e.currentTarget.style.backgroundColor = accentColor);
+  const onHoverIn = (e) =>
+    (e.currentTarget.style.backgroundColor = buttonHover);
+  const onHoverOut = (e) =>
+    (e.currentTarget.style.backgroundColor = accentColor);
   const onPressIn = (e) => (e.currentTarget.style.transform = "scale(0.98)");
   const onPressOut = (e) => (e.currentTarget.style.transform = "scale(1)");
 
@@ -137,20 +185,51 @@ export default function TransferView({ userSettings, onBack }) {
   return (
     <div style={container}>
       <div style={shell}>
-        <div style={headerRow}>
+        <div style={{ position: "relative", marginBottom: "25px" }}>
+          {/* Botón volver en esquina superior izquierda */}
           {onBack && (
             <button
               onClick={onBack}
-              style={ghostBtn}
+              style={{
+                ...ghostBtn,
+                position: "absolute",
+                top: 0,
+                left: 0,
+              }}
               onMouseDown={onPressIn}
               onMouseUp={onPressOut}
             >
               ← Volver
             </button>
           )}
-          <h1 style={h1}>Transferir dinero</h1>
+
+          {/* Logo centrado con texto a la derecha */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "12px",
+              marginBottom: "-15px",
+            }}
+          >
+            <img
+              src={logo}
+              alt="Logo Banco Inclusivo"
+              style={{
+                width: "50px",
+                height: "50px",
+                borderRadius: "50%",
+                objectFit: "cover",
+                backgroundColor: "white",
+                marginBottom : "-15px" // opcional
+              }}
+            />
+            <p >B-Accesible</p>
+          </div>
         </div>
 
+        <h1 style={h1}>Transferir dinero</h1>
         {toast && toast.type !== "success" && (
           <div style={toastBox(toast.type)}>{toast.msg}</div>
         )}
@@ -177,10 +256,13 @@ export default function TransferView({ userSettings, onBack }) {
               </select>
               {selectedSourceAccount && (
                 <p style={hint}>
-                  Saldo disponible: <b>{toMXN(selectedSourceAccount.balance)}</b>
+                  Saldo disponible:{" "}
+                  <b>{toMXN(selectedSourceAccount.balance)}</b>
                 </p>
               )}
-              {errors.sourceAccountId && <p style={errorText}>{errors.sourceAccountId}</p>}
+              {errors.sourceAccountId && (
+                <p style={errorText}>{errors.sourceAccountId}</p>
+              )}
             </div>
           </fieldset>
 
@@ -188,7 +270,9 @@ export default function TransferView({ userSettings, onBack }) {
           <fieldset style={fieldset}>
             <legend style={legend}>Destinatario</legend>
             <div style={radioRow}>
-              <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <label
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
                 <input
                   type="radio"
                   name="mode"
@@ -198,7 +282,9 @@ export default function TransferView({ userSettings, onBack }) {
                 />
                 Contacto guardado
               </label>
-              <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <label
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
                 <input
                   type="radio"
                   name="mode"
@@ -212,7 +298,9 @@ export default function TransferView({ userSettings, onBack }) {
 
             {form.contactMode === "saved" ? (
               <div>
-                <label htmlFor="contactId" style={label}>Selecciona un contacto</label>
+                <label htmlFor="contactId" style={label}>
+                  Selecciona un contacto
+                </label>
                 <select
                   id="contactId"
                   style={input}
@@ -228,7 +316,9 @@ export default function TransferView({ userSettings, onBack }) {
               </div>
             ) : (
               <div>
-                <label htmlFor="alias" style={label}>Alias / Nombre</label>
+                <label htmlFor="alias" style={label}>
+                  Alias / Nombre
+                </label>
                 <input
                   id="alias"
                   style={input}
@@ -236,14 +326,19 @@ export default function TransferView({ userSettings, onBack }) {
                   onChange={(e) => setField("alias", e.target.value)}
                   placeholder="Ej. Juan Pérez"
                 />
-                <label htmlFor="clabe" style={label}>CLABE (18 dígitos)</label>
+                <label htmlFor="clabe" style={label}>
+                  CLABE (18 dígitos)
+                </label>
                 <input
                   id="clabe"
                   inputMode="numeric"
                   style={input}
                   value={form.clabe}
                   onChange={(e) =>
-                    setField("clabe", e.target.value.replace(/[^\d]/g, "").slice(0, 18))
+                    setField(
+                      "clabe",
+                      e.target.value.replace(/[^\d]/g, "").slice(0, 18)
+                    )
                   }
                   placeholder="__________"
                 />
@@ -255,7 +350,9 @@ export default function TransferView({ userSettings, onBack }) {
           {/* Detalle */}
           <fieldset style={fieldset}>
             <legend style={legend}>Detalle</legend>
-            <label htmlFor="amount" style={label}>Monto (MXN)</label>
+            <label htmlFor="amount" style={label}>
+              Monto (MXN)
+            </label>
             <input
               id="amount"
               style={input}
@@ -266,7 +363,9 @@ export default function TransferView({ userSettings, onBack }) {
             />
             {errors.amountStr && <p style={errorText}>{errors.amountStr}</p>}
 
-            <label htmlFor="concepto" style={label}>Concepto</label>
+            <label htmlFor="concepto" style={label}>
+              Concepto
+            </label>
             <input
               id="concepto"
               style={input}
@@ -278,17 +377,44 @@ export default function TransferView({ userSettings, onBack }) {
           </fieldset>
 
           {/* Pie */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-            <p style={{ fontSize: `calc(${fontSizeBase} * 0.85)`, color: subtleText }}>
-              Riesgo estimado: <b style={{ color: risk.level === "alto" ? "#f87171" : risk.level === "medio" ? "#eab308" : "#22c55e" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
+            <p
+              style={{
+                fontSize: `calc(${fontSizeBase} * 0.85)`,
+                color: subtleText,
+              }}
+            >
+              Riesgo estimado:{" "}
+              <b
+                style={{
+                  color:
+                    risk.level === "alto"
+                      ? "#f87171"
+                      : risk.level === "medio"
+                      ? "#eab308"
+                      : "#22c55e",
+                }}
+              >
                 {risk.level.toUpperCase()}
-              </b> · {risk.msg}
+              </b>{" "}
+              · {risk.msg}
             </p>
 
             <button
               type="submit"
               disabled={submitting}
-              style={{ ...primaryBtn, backgroundColor: accentColor, opacity: submitting ? 0.8 : 1 }}
+              style={{
+                ...primaryBtn,
+                backgroundColor: accentColor,
+                opacity: submitting ? 0.8 : 1,
+              }}
               onMouseEnter={onHoverIn}
               onMouseLeave={onHoverOut}
               onMouseDown={onPressIn}

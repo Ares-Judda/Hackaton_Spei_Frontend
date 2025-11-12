@@ -1,21 +1,39 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { FaCopy, FaQrcode, FaShareAlt, FaDownload } from "react-icons/fa";
+import logo from "../assets/logo.png";
 
 export default function ReceiveView({ userSettings, onBack }) {
   const accounts = [
-    { id: "acc1", alias: "Cuenta Nómina", clabe: "002010012345678901", accountNumber: "1234 5678 9012 3456", bank: "Banco Inclusivo", name: "Juan Pérez" },
-    { id: "acc2", alias: "Ahorros",       clabe: "012180001234567891", accountNumber: "6543 2109 8765 4321", bank: "Banco Inclusivo", name: "Juan Pérez" },
+    {
+      id: "acc1",
+      alias: "Cuenta Nómina",
+      clabe: "002010012345678901",
+      accountNumber: "1234 5678 9012 3456",
+      bank: "Banco Inclusivo",
+      name: "Juan Pérez",
+    },
+    {
+      id: "acc2",
+      alias: "Ahorros",
+      clabe: "012180001234567891",
+      accountNumber: "6543 2109 8765 4321",
+      bank: "Banco Inclusivo",
+      name: "Juan Pérez",
+    },
   ];
 
   const [selectedId, setSelectedId] = useState(accounts[0].id);
-  const selected = useMemo(() => accounts.find((a) => a.id === selectedId), [selectedId]);
+  const selected = useMemo(
+    () => accounts.find((a) => a.id === selectedId),
+    [selectedId]
+  );
 
   const [toast, setToast] = useState(null);
   const dismissToast = () => setToast(null);
 
-  const [qrAmount, setQrAmount]   = useState("");
+  const [qrAmount, setQrAmount] = useState("");
   const [qrConcept, setQrConcept] = useState("");
-  const [qrUrl, setQrUrl]         = useState("");
+  const [qrUrl, setQrUrl] = useState("");
 
   // ===== Estilos coherentes con Home/Transfer/Accounts usando userSettings =====
   const isDark = userSettings?.theme === "dark";
@@ -28,7 +46,8 @@ export default function ReceiveView({ userSettings, onBack }) {
   const borderColor = isDark ? "#293548" : "#d1d5db";
   const subtleText = isDark ? "#94a3b8" : "#6b7280";
   const fontSizeBase = userSettings?.fontSize || "0.95rem";
-  const fontFamily = userSettings?.font || "system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  const fontFamily =
+    userSettings?.font || "system-ui, -apple-system, Segoe UI, Roboto, Arial";
 
   const container = {
     display: "flex",
@@ -40,8 +59,14 @@ export default function ReceiveView({ userSettings, onBack }) {
     transition: "background-color 0.3s ease, color 0.3s ease",
     fontFamily,
   };
-  const shell = { width: "100%", maxWidth: "500px", display: "flex", flexDirection: "column", gap: "18px" };
-  const h1 = { fontSize: "1.4rem", fontWeight: 700, margin: 0 };
+  const shell = {
+    width: "100%",
+    maxWidth: "500px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "18px",
+  };
+  const h1 = { fontSize: "1.4rem", fontWeight: 700, margin: 0, textAlign: "center" };
   const label = { fontSize: fontSizeBase, fontWeight: 700, color: textColor };
   const small = { fontSize: "0.85rem", color: subtleText };
 
@@ -73,7 +98,9 @@ export default function ReceiveView({ userSettings, onBack }) {
     border: `1px solid ${borderColor}`,
     borderRadius: 18,
     padding: 16,
-    boxShadow: isDark ? "0 4px 10px rgba(0,0,0,0.25)" : "0 4px 10px rgba(0,0,0,0.08)",
+    boxShadow: isDark
+      ? "0 4px 10px rgba(0,0,0,0.25)"
+      : "0 4px 10px rgba(0,0,0,0.08)",
   };
   const input = {
     width: "100%",
@@ -90,7 +117,14 @@ export default function ReceiveView({ userSettings, onBack }) {
     padding: 10,
     fontSize: "0.95rem",
     border: type === "success" ? "1px solid #86efac" : "1px solid #fca5a5",
-    background: type === "success" ? (isDark ? "#052e1b" : "#f0fdf4") : (isDark ? "#3a0d0d" : "#fef2f2"),
+    background:
+      type === "success"
+        ? isDark
+          ? "#052e1b"
+          : "#f0fdf4"
+        : isDark
+        ? "#3a0d0d"
+        : "#fef2f2",
     color: textColor,
   });
 
@@ -109,24 +143,31 @@ export default function ReceiveView({ userSettings, onBack }) {
   });
 
   // ===== Hovers/press como en las otras vistas =====
-  const onHoverIn = (e) => (e.currentTarget.style.backgroundColor = buttonHover);
-  const onHoverOut = (e) => (e.currentTarget.style.backgroundColor = accentColor);
+  const onHoverIn = (e) =>
+    (e.currentTarget.style.backgroundColor = buttonHover);
+  const onHoverOut = (e) =>
+    (e.currentTarget.style.backgroundColor = accentColor);
   const onPressIn = (e) => (e.currentTarget.style.transform = "scale(0.98)");
   const onPressOut = (e) => (e.currentTarget.style.transform = "scale(1)");
 
   // ===== Clipboard / share =====
   const copyToClipboard = async (text, label) => {
     try {
-      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+      if (navigator.clipboard?.writeText)
+        await navigator.clipboard.writeText(text);
       else {
         const ta = document.createElement("textarea");
-        ta.value = text; document.body.appendChild(ta);
-        ta.select(); document.execCommand("copy");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
         document.body.removeChild(ta);
       }
-      setToast({ type: "success", msg: `${label} copiado` }); setTimeout(dismissToast, 1800);
+      setToast({ type: "success", msg: `${label} copiado` });
+      setTimeout(dismissToast, 1800);
     } catch {
-      setToast({ type: "error", msg: `No se pudo copiar ${label}` }); setTimeout(dismissToast, 2000);
+      setToast({ type: "error", msg: `No se pudo copiar ${label}` });
+      setTimeout(dismissToast, 2000);
     }
   };
 
@@ -138,7 +179,8 @@ Banco: ${selected.bank}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: "Datos para transferencia", text });
-        setToast({ type: "success", msg: "Compartido" }); setTimeout(dismissToast, 1500);
+        setToast({ type: "success", msg: "Compartido" });
+        setTimeout(dismissToast, 1500);
       } catch {}
     } else {
       copyToClipboard(text, "Datos de transferencia");
@@ -164,11 +206,17 @@ Banco: ${selected.bank}`;
   const generateQr = () => {
     const data = encodeURIComponent(buildCodiPayload());
     const cacheBust = Date.now();
-    setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${data}&cb=${cacheBust}`);
+    setQrUrl(
+      `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${data}&cb=${cacheBust}`
+    );
   };
 
-  useEffect(() => { generateQr(); }, []);
-  useEffect(() => { generateQr(); }, [selectedId, qrAmount, qrConcept]);
+  useEffect(() => {
+    generateQr();
+  }, []);
+  useEffect(() => {
+    generateQr();
+  }, [selectedId, qrAmount, qrConcept]);
 
   const downloadQr = async () => {
     if (!qrUrl) return;
@@ -177,10 +225,15 @@ Banco: ${selected.bank}`;
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url; a.download = `CoDiQR_${selected.alias}.png`;
-      document.body.appendChild(a); a.click(); URL.revokeObjectURL(url); a.remove();
+      a.href = url;
+      a.download = `CoDiQR_${selected.alias}.png`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
     } catch {
-      setToast({ type: "error", msg: "No se pudo descargar el QR" }); setTimeout(dismissToast, 1800);
+      setToast({ type: "error", msg: "No se pudo descargar el QR" });
+      setTimeout(dismissToast, 1800);
     }
   };
 
@@ -189,9 +242,15 @@ Banco: ${selected.bank}`;
     try {
       const res = await fetch(qrUrl);
       const blob = await res.blob();
-      const file = new File([blob], `CoDiQR_${selected.alias}.png`, { type: "image/png" });
+      const file = new File([blob], `CoDiQR_${selected.alias}.png`, {
+        type: "image/png",
+      });
       if (navigator.canShare({ files: [file] })) {
-        await navigator.share({ title: "QR de cobro", text: "Escanea para pagar (demo)", files: [file] });
+        await navigator.share({
+          title: "QR de cobro",
+          text: "Escanea para pagar (demo)",
+          files: [file],
+        });
       } else {
         await navigator.share({ title: "QR de cobro", text: qrUrl });
       }
@@ -202,19 +261,51 @@ Banco: ${selected.bank}`;
   return (
     <div style={container}>
       <div style={shell}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ position: "relative", marginBottom: "25px" }}>
+          {/* Botón volver en esquina superior izquierda */}
           {onBack && (
             <button
               onClick={onBack}
-              style={ghostBtn}
+              style={{
+                ...ghostBtn,
+                position: "absolute",
+                top: 0,
+                left: 0,
+              }}
               onMouseDown={onPressIn}
               onMouseUp={onPressOut}
             >
               ← Volver
             </button>
           )}
-          <h1 style={h1}>Recibir dinero</h1>
+
+          {/* Logo centrado con texto a la derecha */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "12px",
+              marginBottom: "-15px",
+            }}
+          >
+            <img
+              src={logo}
+              alt="Logo Banco Inclusivo"
+              style={{
+                width: "50px",
+                height: "50px",
+                borderRadius: "50%",
+                objectFit: "cover",
+                backgroundColor: "white",
+                marginBottom: "-15px", // opcional
+              }}
+            />
+            <p>B-Accesible</p>
+          </div>
         </div>
+
+        <h1 style={h1}>Recibir dinero</h1>
 
         {/* Cuenta a recibir */}
         <div style={fieldCard}>
@@ -229,8 +320,12 @@ Banco: ${selected.bank}`;
                 onMouseUp={onPressOut}
                 aria-label={`Seleccionar ${acc.alias}`}
               >
-                <div style={{ fontWeight: 700, fontSize: fontSizeBase }}>{acc.alias}</div>
-                <div style={{ fontSize: fontSizeBase }}>{acc.accountNumber}</div>
+                <div style={{ fontWeight: 700, fontSize: fontSizeBase }}>
+                  {acc.alias}
+                </div>
+                <div style={{ fontSize: fontSizeBase }}>
+                  {acc.accountNumber}
+                </div>
               </button>
             ))}
           </div>
@@ -238,7 +333,9 @@ Banco: ${selected.bank}`;
 
         {/* Datos principales */}
         <div style={fieldCard}>
-          <div style={{ fontSize: fontSizeBase, fontWeight: 700 }}>{selected.name}</div>
+          <div style={{ fontSize: fontSizeBase, fontWeight: 700 }}>
+            {selected.name}
+          </div>
           <div style={small}>{selected.bank}</div>
 
           <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
@@ -246,11 +343,25 @@ Banco: ${selected.bank}`;
             <div>
               <div style={small}>CLABE</div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <div style={{ fontWeight: 700, letterSpacing: 1, fontSize: fontSizeBase }}>{selected.clabe}</div>
+                <div
+                  style={{
+                    fontWeight: 700,
+                    letterSpacing: 1,
+                    fontSize: fontSizeBase,
+                  }}
+                >
+                  {selected.clabe}
+                </div>
                 <button
                   onClick={() => copyToClipboard(selected.clabe, "CLABE")}
                   aria-label="Copiar CLABE"
-                  style={{ border: "none", background: "transparent", cursor: "pointer", color: accentColor, fontSize: fontSizeBase }}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    cursor: "pointer",
+                    color: accentColor,
+                    fontSize: fontSizeBase,
+                  }}
                 >
                   <FaCopy />
                 </button>
@@ -261,11 +372,21 @@ Banco: ${selected.bank}`;
             <div>
               <div style={small}>Número de cuenta</div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <div style={{ fontWeight: 700, fontSize: fontSizeBase }}>{selected.accountNumber}</div>
+                <div style={{ fontWeight: 700, fontSize: fontSizeBase }}>
+                  {selected.accountNumber}
+                </div>
                 <button
-                  onClick={() => copyToClipboard(selected.accountNumber, "Número de cuenta")}
+                  onClick={() =>
+                    copyToClipboard(selected.accountNumber, "Número de cuenta")
+                  }
                   aria-label="Copiar número de cuenta"
-                  style={{ border: "none", background: "transparent", cursor: "pointer", color: accentColor, fontSize: fontSizeBase }}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    cursor: "pointer",
+                    color: accentColor,
+                    fontSize: fontSizeBase,
+                  }}
                 >
                   <FaCopy />
                 </button>
@@ -295,7 +416,14 @@ Banco: ${selected.bank}`;
               onMouseDown={onPressIn}
               onMouseUp={onPressOut}
             >
-              <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
                 <FaShareAlt /> Compartir
               </div>
             </button>
@@ -304,12 +432,26 @@ Banco: ${selected.bank}`;
 
         {/* QR siempre visible */}
         <div style={fieldCard}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 10,
+            }}
+          >
             <FaQrcode />
             <div style={{ fontSize: 16, fontWeight: 700 }}>QR para cobrar</div>
           </div>
 
-          <div style={{ display: "grid", placeItems: "center", gap: 10, marginBottom: 10 }}>
+          <div
+            style={{
+              display: "grid",
+              placeItems: "center",
+              gap: 10,
+              marginBottom: 10,
+            }}
+          >
             {qrUrl ? (
               <img
                 src={qrUrl}
@@ -375,9 +517,18 @@ Banco: ${selected.bank}`;
                 inputMode="decimal"
                 placeholder="0.00"
                 value={qrAmount}
-                onChange={(e) => setQrAmount(e.target.value.replace(",", ".").replace(/[^\d.]/g, "").slice(0, 12))}
+                onChange={(e) =>
+                  setQrAmount(
+                    e.target.value
+                      .replace(",", ".")
+                      .replace(/[^\d.]/g, "")
+                      .slice(0, 12)
+                  )
+                }
               />
-              <div style={small}>Puedes dejarlo vacío y la otra persona capturará el monto.</div>
+              <div style={small}>
+                Puedes dejarlo vacío y la otra persona capturará el monto.
+              </div>
             </div>
 
             <div>
@@ -393,7 +544,8 @@ Banco: ${selected.bank}`;
           </div>
 
           <div style={{ marginTop: 6, ...small }}>
-            Este QR es de demostración. En producción, usa el formato oficial de CoDi.
+            Este QR es de demostración. En producción, usa el formato oficial de
+            CoDi.
           </div>
         </div>
 

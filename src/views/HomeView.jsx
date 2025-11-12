@@ -1,101 +1,60 @@
-import React, { useState } from "react";
-import AppWrapper from "../components/AppWrapper";
-import { useNavigate } from "react-router-dom";
-import AccountCard from "../components/AcountCard";
+import React from "react";
 import {
   FaArrowDown,
   FaArrowUp,
   FaCreditCard,
   FaWallet,
   FaMoneyBillWave,
-  FaHistory,
   FaCog,
   FaChartLine,
-  FaExchangeAlt,
 } from "react-icons/fa";
+import logo from "../assets/logo.png";
 
-const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccouts, goToCards  }) => {
-  
-  const [simpleMode, setSimpleMode] = useState(false);
-
+const HomeView = ({
+  userSettings,
+  goToTransfer,
+  goToReceive,
+  goToPay,
+  goToAccouts,
+  goToCards,
+  simpleMode,
+  setSimpleMode
+}) => {
   const isDark = userSettings.theme === "dark";
   const accentColor = "#0078D4";
   const bgColor = isDark ? "#0f172a" : "#f9fafb";
   const textColor = isDark ? "#f1f5f9" : "#1e293b";
   const buttonBg = accentColor;
   const buttonHover = "#005EA6";
-    const fontSize = userSettings.fontSize || "16px";
+  const fontSize = userSettings.fontSize || "16px";
   const fontFamily = userSettings.font || "Segoe UI";
 
   const userName = "Juan Pérez";
   const balance = "12,345.67";
   const accountNumber = "1234 5678 9012 3456";
 
+  // Acciones completas
   const fullActions = [
-    {
-      icon: <FaArrowDown />,
-      label: "Recibir",
-      onClick: () => goToReceive(),
-    },
-    {
-      icon: <FaArrowUp />,
-      label: "Transferir",
-      onClick: () => goToTransfer() ,
-    },
-    {
-      icon: <FaWallet />,
-      label: "Saldo / Cuentas",
-      onClick: () => goToAccouts(),
-    },
-    {
-      icon: <FaMoneyBillWave />,
-      label: "Pago de servicios",
-      onClick: () => goToPay(),
-    },
-    
-    
-    {
-      icon: <FaCreditCard />,
-      label: "Mis Tarjetas",
-      onClick: () => goToCards(),
-    },
-    {
-      icon: <FaChartLine />,
-      label: "Inversiones",
-      onClick: () => alert("Ver inversiones"),
-    },
-    {
-      icon: <FaCog />,
-      label: "Ajustes",
-      onClick: () => alert("Configurar cuenta"),
-    },
-    
+    { icon: <FaArrowDown />, label: "Recibir", onClick: goToReceive },
+    { icon: <FaArrowUp />, label: "Transferir", onClick: goToTransfer },
+    { icon: <FaWallet />, label: "Saldo / Cuentas", onClick: goToAccouts },
+    { icon: <FaMoneyBillWave />, label: "Pago de servicios", onClick: goToPay },
+    { icon: <FaCreditCard />, label: "Mis Tarjetas", onClick: goToCards },
+    { icon: <FaChartLine />, label: "Inversiones", onClick: () => alert("Ver inversiones") },
+    { icon: <FaCog />, label: "Ajustes", onClick: () => alert("Configurar cuenta") },
   ];
 
-  const simpleActions = [
-    {
-      icon: <FaArrowDown />,
-      label: "Recibir",
-      onClick: () => goToReceive(),
-    },
-    {
-      icon: <FaArrowUp />,
-      label: "Transferir",
-      onClick: () => goToTransfer(),
-    },
-    {
-      icon: <FaWallet />,
-      label: "Saldo / Cuentas",
-      onClick: () => goToAccouts(),
-    },
-    {
-      icon: <FaMoneyBillWave />,
-      label: "Pago de servicios",
-      onClick: () => goToPay(),
-    },
-  ];
-
+  // Acciones simplificadas
+  const simpleActions = fullActions.slice(0, 4);
   const actions = simpleMode ? simpleActions : fullActions;
+
+  // Función para cambiar modo y guardar en localStorage
+  const toggleMode = () => {
+    setSimpleMode(prev => {
+      localStorage.setItem("simpleMode", JSON.stringify(!prev));
+      return !prev;
+    });
+  };
 
   return (
     <div
@@ -112,38 +71,50 @@ const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccout
         fontFamily,
       }}
     >
-      {/* 👤 Encabezado con estilo limpio y jerarquía visual */}
+      {/* Encabezado con logo a la izquierda y tarjeta debajo */}
       <div
         style={{
-          textAlign: "center",
+          display: "flex",
+          flexDirection: "column",
           marginBottom: "30px",
           width: "100%",
           maxWidth: "500px",
         }}
       >
-        <h1
+        {/* Logo + texto de bienvenida */}
+        <div
           style={{
-            fontSize,
-            fontWeight: "700",
-            marginBottom: "8px",
-            lineHeight: "1.4",
-          }}
-        >
-          Hola, <span style={{ color: accentColor }}>{userName}</span>
-        </h1>
-
-        <p
-          style={{
-            fontSize,
-            opacity: 0.75,
+            display: "flex",
+            alignItems: "center",
+            gap: "16px", // espacio entre logo y texto
             marginBottom: "20px",
-            fontWeight: "500",
           }}
         >
-          Te damos la bienvenida a tu banca digital
-        </p>
+          {/* Logo */}
+          <img
+            src={logo}
+            alt="Logo B-accesible"
+            style={{
+              width: "70px",
+              height: "70px",
+              borderRadius: "50%",
+              objectFit: "cover",
+              backgroundColor: "white", // opcional
+            }}
+          />
 
-        {/* 💰 Tarjeta de saldo accesible */}
+          {/* Texto de bienvenida */}
+          <div style={{ textAlign: "left" }}>
+            <h1 style={{ fontSize, fontWeight: "700", marginBottom: "8px", lineHeight: "1.4" }}>
+              Hola, <span style={{ color: accentColor }}>{userName}</span>
+            </h1>
+            <p style={{ fontSize, opacity: 0.75, fontWeight: "500" }}>
+              Te damos la bienvenida a tu banca digital
+            </p>
+          </div>
+        </div>
+
+        {/* Tarjeta de saldo debajo */}
         <div
           style={{
             background: isDark
@@ -155,45 +126,23 @@ const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccout
             boxShadow: "0 6px 25px rgba(0,0,0,0.25)",
             textAlign: "center",
             transition: "transform 0.3s ease",
+            width: "100%",
           }}
         >
-          <p
-            style={{
-              fontSize,
-              opacity: 0.9,
-              marginBottom: "6px",
-              fontWeight: "500",
-            }}
-          >
+          <p style={{ fontSize, opacity: 0.9, marginBottom: "6px", fontWeight: "500" }}>
             Saldo disponible
           </p>
-
-          <h2
-            style={{
-              fontSize: `calc(${fontSize} * 2.2)`, // 👈 tamaño grande y destacado
-              fontWeight: "700",
-              margin: "0",
-              letterSpacing: "0.5px",
-            }}
-          >
+          <h2 style={{ fontSize: `calc(${fontSize} * 2.2)`, fontWeight: "700", margin: 0, letterSpacing: "0.5px" }}>
             ${balance} MXN
           </h2>
-
-
-          <p
-            style={{
-              marginTop: "10px",
-              fontSize,
-              opacity: 0.85,
-              fontWeight: "500",
-            }}
-          >
+          <p style={{ marginTop: "10px", fontSize, opacity: 0.85, fontWeight: "500" }}>
             Cuenta terminada en {accountNumber.slice(-4)}
           </p>
         </div>
       </div>
 
-      {/* 🧭 Botones de acción accesibles */}
+
+      {/* Botones de acción */}
       <div
         style={{
           display: "grid",
@@ -231,17 +180,15 @@ const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccout
             onMouseDown={(e) => (e.target.style.transform = "scale(0.97)")}
             onMouseUp={(e) => (e.target.style.transform = "scale(1)")}
           >
-            <span style={{ fontSize: `calc(${fontSize} * 1.8)` }}>
-              {action.icon}
-            </span>
+            <span style={{ fontSize: `calc(${fontSize} * 1.8)` }}>{action.icon}</span>
             {action.label}
           </button>
         ))}
       </div>
 
-      {/* 🔄 Botón modo simple */}
+      {/* Botón modo simple */}
       <button
-        onClick={() => setSimpleMode(!simpleMode)}
+        onClick={toggleMode}
         style={{
           marginTop: "35px",
           padding: "12px 22px",
@@ -261,15 +208,8 @@ const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccout
         {simpleMode ? "🔓 Modo Completo" : "🔒 Modo Simple"}
       </button>
 
-      {/* 📄 Pie accesible */}
-      <p
-        style={{
-          fontSize: `calc(${fontSize} * 0.75)`,
-          opacity: 0.6,
-          marginTop: "25px",
-          textAlign: "center",
-        }}
-      >
+      {/* Pie de página */}
+      <p style={{ fontSize: `calc(${fontSize} * 0.75)`, opacity: 0.6, marginTop: "25px", textAlign: "center" }}>
         © 2025 Banco Inclusivo — Interfaz accesible para todos
       </p>
     </div>

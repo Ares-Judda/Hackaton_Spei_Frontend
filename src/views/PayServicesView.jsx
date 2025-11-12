@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { FaBolt, FaTint, FaWifi, FaPhone, FaPlus } from "react-icons/fa";
+import logo from "../assets/logo.png";
 
 export default function PayServicesView({ userSettings, onBack }) {
   // ===== Servicios predefinidos =====
@@ -12,13 +13,33 @@ export default function PayServicesView({ userSettings, onBack }) {
 
   // ===== Cuentas de origen (mock) =====
   const sourceAccounts = [
-    { id: "acc1", alias: "Cuenta Nómina", number: "1234 5678 9012 3456", bank: "Banco Inclusivo", balance: 8200.55 },
-    { id: "acc2", alias: "Ahorros",       number: "6543 2109 8765 4321", bank: "Banco Inclusivo", balance: 25000.00 },
-    { id: "acc3", alias: "Gastos",        number: "1111 2222 3333 4444", bank: "Banco Inclusivo", balance: 1200.00 },
+    {
+      id: "acc1",
+      alias: "Cuenta Nómina",
+      number: "1234 5678 9012 3456",
+      bank: "Banco Inclusivo",
+      balance: 8200.55,
+    },
+    {
+      id: "acc2",
+      alias: "Ahorros",
+      number: "6543 2109 8765 4321",
+      bank: "Banco Inclusivo",
+      balance: 25000.0,
+    },
+    {
+      id: "acc3",
+      alias: "Gastos",
+      number: "1111 2222 3333 4444",
+      bank: "Banco Inclusivo",
+      balance: 1200.0,
+    },
   ];
-  const [selectedSourceId, setSelectedSourceId] = useState(sourceAccounts[0].id);
+  const [selectedSourceId, setSelectedSourceId] = useState(
+    sourceAccounts[0].id
+  );
   const selectedSource = useMemo(
-    () => sourceAccounts.find(a => a.id === selectedSourceId),
+    () => sourceAccounts.find((a) => a.id === selectedSourceId),
     [selectedSourceId]
   );
 
@@ -44,20 +65,27 @@ export default function PayServicesView({ userSettings, onBack }) {
   const setField = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const toNumber = (v) => {
-    const x = String(v).replace(",", ".").replace(/[^\d.]/g, "");
+    const x = String(v)
+      .replace(",", ".")
+      .replace(/[^\d.]/g, "");
     const n = Number.parseFloat(x);
     return Number.isFinite(n) ? n : 0;
   };
   const amount = useMemo(() => toNumber(form.amountStr), [form.amountStr]);
 
   const toMXN = (n) =>
-    new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
+    new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN",
+    }).format(n || 0);
 
-  const summaryName = mode === "preset"
-    ? presets.find((p) => p.id === selectedService)?.label || "Servicio"
-    : form.customName || "Servicio personalizado";
+  const summaryName =
+    mode === "preset"
+      ? presets.find((p) => p.id === selectedService)?.label || "Servicio"
+      : form.customName || "Servicio personalizado";
   const summaryRef = mode === "preset" ? form.refPreset : form.customRef;
-  const summaryConvenio = mode === "preset" ? "(automático)" : form.customConvenio || "-";
+  const summaryConvenio =
+    mode === "preset" ? "(automático)" : form.customConvenio || "-";
 
   // ===== Estilos (coherentes con Home/Transfer/Accounts/Receive) =====
   const isDark = userSettings?.theme === "dark";
@@ -70,7 +98,8 @@ export default function PayServicesView({ userSettings, onBack }) {
   const borderColor = isDark ? "#293548" : "#d1d5db";
   const subtleText = isDark ? "#94a3b8" : "#6b7280";
   const fontSizeBase = userSettings?.fontSize || "0.95rem";
-  const fontFamily = userSettings?.font || "system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  const fontFamily =
+    userSettings?.font || "system-ui, -apple-system, Segoe UI, Roboto, Arial";
 
   const container = {
     display: "flex",
@@ -82,6 +111,7 @@ export default function PayServicesView({ userSettings, onBack }) {
     transition: "background-color 0.3s ease, color 0.3s ease",
     fontFamily,
   };
+
   const shell = {
     width: "100%",
     maxWidth: "500px",
@@ -89,15 +119,24 @@ export default function PayServicesView({ userSettings, onBack }) {
     flexDirection: "column",
     gap: "18px",
   };
-  const h1 = { fontSize: "1.4rem", fontWeight: 700, margin: 0 };
+
+  const h1 = { fontSize: "1.4rem", fontWeight: 700, margin: 0, textAlign: "center" };
+
   const fieldCard = {
     background: cardColor,
     border: `1px solid ${borderColor}`,
     borderRadius: 18,
     padding: 16,
-    boxShadow: isDark ? "0 4px 10px rgba(0,0,0,0.25)" : "0 4px 10px rgba(0,0,0,0.08)",
+    boxShadow: isDark
+      ? "0 4px 10px rgba(0,0,0,0.25)"
+      : "0 4px 10px rgba(0,0,0,0.08)",
   };
-  const legend = { fontSize: "0.95rem", fontWeight: 700, marginBottom: 8, color: textColor };
+  const legend = {
+    fontSize: "0.95rem",
+    fontWeight: 700,
+    marginBottom: 8,
+    color: textColor,
+  };
   const label = { fontSize: fontSizeBase, fontWeight: 700, color: textColor };
   const input = {
     width: "100%",
@@ -163,19 +202,31 @@ export default function PayServicesView({ userSettings, onBack }) {
     padding: 10,
     fontSize: "0.95rem",
     border:
-      type === "success" ? "1px solid #86efac" :
-      type === "error"   ? "1px solid #fca5a5" :
-                           `1px solid ${borderColor}`,
+      type === "success"
+        ? "1px solid #86efac"
+        : type === "error"
+        ? "1px solid #fca5a5"
+        : `1px solid ${borderColor}`,
     background:
-      type === "success" ? (isDark ? "#052e1b" : "#f0fdf4") :
-      type === "error"   ? (isDark ? "#3a0d0d" : "#fef2f2") :
-                           (isDark ? "#0b1220" : "#eff6ff"),
+      type === "success"
+        ? isDark
+          ? "#052e1b"
+          : "#f0fdf4"
+        : type === "error"
+        ? isDark
+          ? "#3a0d0d"
+          : "#fef2f2"
+        : isDark
+        ? "#0b1220"
+        : "#eff6ff",
     color: textColor,
   });
 
   // Hovers/press
-  const onHoverIn = (e) => (e.currentTarget.style.backgroundColor = buttonHover);
-  const onHoverOut = (e) => (e.currentTarget.style.backgroundColor = accentColor);
+  const onHoverIn = (e) =>
+    (e.currentTarget.style.backgroundColor = buttonHover);
+  const onHoverOut = (e) =>
+    (e.currentTarget.style.backgroundColor = accentColor);
   const onPressIn = (e) => (e.currentTarget.style.transform = "scale(0.98)");
   const onPressOut = (e) => (e.currentTarget.style.transform = "scale(1)");
 
@@ -186,13 +237,17 @@ export default function PayServicesView({ userSettings, onBack }) {
     if (amount > 150000) e.amountStr = "Máximo 150,000 MXN.";
 
     if (selectedSource && amount > selectedSource.balance) {
-      e.amountStr = `Saldo insuficiente en ${selectedSource.alias} (${toMXN(selectedSource.balance)})`;
+      e.amountStr = `Saldo insuficiente en ${selectedSource.alias} (${toMXN(
+        selectedSource.balance
+      )})`;
     }
 
     if (mode === "preset") {
-      if (!form.refPreset.trim()) e.refPreset = "Ingresa la referencia de tu servicio.";
+      if (!form.refPreset.trim())
+        e.refPreset = "Ingresa la referencia de tu servicio.";
     } else {
-      if (!form.customName.trim()) e.customName = "Nombre del servicio requerido.";
+      if (!form.customName.trim())
+        e.customName = "Nombre del servicio requerido.";
       if (!/^\d{4,}$/.test(form.customConvenio.trim()))
         e.customConvenio = "Convenio (solo dígitos, al menos 4).";
       if (!form.customRef.trim()) e.customRef = "Referencia requerida.";
@@ -225,19 +280,51 @@ export default function PayServicesView({ userSettings, onBack }) {
   return (
     <div style={container}>
       <div style={shell}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ position: "relative", marginBottom: "25px" }}>
+          {/* Botón volver en esquina superior izquierda */}
           {onBack && (
             <button
               onClick={onBack}
-              style={ghostBtn}
-              onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
-              onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+              style={{
+                ...ghostBtn,
+                position: "absolute",
+                top: 0,
+                left: 0,
+              }}
+              onMouseDown={onPressIn}
+              onMouseUp={onPressOut}
             >
               ← Volver
             </button>
           )}
-          <h1 style={h1}>Pagar servicios</h1>
+
+          {/* Logo centrado con texto a la derecha */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "12px",
+              marginBottom: "-15px",
+            }}
+          >
+            <img
+              src={logo}
+              alt="Logo Banco Inclusivo"
+              style={{
+                width: "50px",
+                height: "50px",
+                borderRadius: "50%",
+                objectFit: "cover",
+                backgroundColor: "white",
+                marginBottom: "-15px", // opcional
+              }}
+            />
+            <p>B-Accesible</p>
+          </div>
         </div>
+
+        <h1 style={h1}>Pagar Servicios</h1>
 
         {toast && toast.type !== "success" && (
           <div style={toastBox(toast.type)}>{toast.msg}</div>
@@ -253,8 +340,12 @@ export default function PayServicesView({ userSettings, onBack }) {
                 onClick={() => setSelectedSourceId(acc.id)}
                 style={sourceChip(selectedSourceId === acc.id)}
                 aria-label={`Usar ${acc.alias} como cuenta de origen`}
-                onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
-                onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                onMouseDown={(e) =>
+                  (e.currentTarget.style.transform = "scale(0.98)")
+                }
+                onMouseUp={(e) =>
+                  (e.currentTarget.style.transform = "scale(1)")
+                }
               >
                 <div style={{ fontWeight: 700 }}>{acc.alias}</div>
                 <div style={{ fontSize: "0.9rem", color: subtleText }}>
@@ -272,12 +363,25 @@ export default function PayServicesView({ userSettings, onBack }) {
         <div style={fieldCard}>
           <div style={legend}>Tipo de servicio</div>
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-            <button onClick={() => setMode("preset")} style={chip(mode === "preset")}>
+            <button
+              onClick={() => setMode("preset")}
+              style={chip(mode === "preset")}
+            >
               <div style={{ fontWeight: 700 }}>Servicios</div>
               <div style={small}>Agua/Luz/Internet</div>
             </button>
-            <button onClick={() => setMode("custom")} style={chip(mode === "custom")}>
-              <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+            <button
+              onClick={() => setMode("custom")}
+              style={chip(mode === "custom")}
+            >
+              <div
+                style={{
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
                 <FaPlus /> Personalizado
               </div>
               <div style={small}>Convenio/Referencia</div>
@@ -286,7 +390,13 @@ export default function PayServicesView({ userSettings, onBack }) {
 
           {mode === "preset" ? (
             <>
-              <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gap: 8,
+                  gridTemplateColumns: "1fr 1fr",
+                }}
+              >
                 {presets.map((p) => (
                   <button
                     key={p.id}
@@ -301,7 +411,9 @@ export default function PayServicesView({ userSettings, onBack }) {
               </div>
 
               <div style={{ marginTop: 12 }}>
-                <label htmlFor="refPreset" style={label}>Referencia del servicio</label>
+                <label htmlFor="refPreset" style={label}>
+                  Referencia del servicio
+                </label>
                 <input
                   id="refPreset"
                   style={input}
@@ -309,13 +421,19 @@ export default function PayServicesView({ userSettings, onBack }) {
                   onChange={(e) => setField("refPreset", e.target.value)}
                   placeholder="Ej. Número de contrato/servicio"
                 />
-                {errors.refPreset && <p style={{ fontSize: "0.85rem", color: "#f87171" }}>{errors.refPreset}</p>}
+                {errors.refPreset && (
+                  <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
+                    {errors.refPreset}
+                  </p>
+                )}
               </div>
             </>
           ) : (
             <div style={{ display: "grid", gap: 8 }}>
               <div>
-                <label htmlFor="customName" style={label}>Nombre del servicio</label>
+                <label htmlFor="customName" style={label}>
+                  Nombre del servicio
+                </label>
                 <input
                   id="customName"
                   style={input}
@@ -323,24 +441,41 @@ export default function PayServicesView({ userSettings, onBack }) {
                   onChange={(e) => setField("customName", e.target.value)}
                   placeholder="Ej. Agua Municipal Xalapa"
                 />
-                {errors.customName && <p style={{ fontSize: "0.85rem", color: "#f87171" }}>{errors.customName}</p>}
+                {errors.customName && (
+                  <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
+                    {errors.customName}
+                  </p>
+                )}
               </div>
 
               <div>
-                <label htmlFor="customConvenio" style={label}>Número de convenio</label>
+                <label htmlFor="customConvenio" style={label}>
+                  Número de convenio
+                </label>
                 <input
                   id="customConvenio"
                   inputMode="numeric"
                   style={input}
                   value={form.customConvenio}
-                  onChange={(e) => setField("customConvenio", e.target.value.replace(/[^\d]/g, ""))}
+                  onChange={(e) =>
+                    setField(
+                      "customConvenio",
+                      e.target.value.replace(/[^\d]/g, "")
+                    )
+                  }
                   placeholder="Solo dígitos"
                 />
-                {errors.customConvenio && <p style={{ fontSize: "0.85rem", color: "#f87171" }}>{errors.customConvenio}</p>}
+                {errors.customConvenio && (
+                  <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
+                    {errors.customConvenio}
+                  </p>
+                )}
               </div>
 
               <div>
-                <label htmlFor="customRef" style={label}>Referencia</label>
+                <label htmlFor="customRef" style={label}>
+                  Referencia
+                </label>
                 <input
                   id="customRef"
                   style={input}
@@ -348,7 +483,11 @@ export default function PayServicesView({ userSettings, onBack }) {
                   onChange={(e) => setField("customRef", e.target.value)}
                   placeholder="Número de referencia del servicio"
                 />
-                {errors.customRef && <p style={{ fontSize: "0.85rem", color: "#f87171" }}>{errors.customRef}</p>}
+                {errors.customRef && (
+                  <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
+                    {errors.customRef}
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -357,7 +496,9 @@ export default function PayServicesView({ userSettings, onBack }) {
         {/* Monto */}
         <div style={fieldCard}>
           <div style={legend}>Monto</div>
-          <label htmlFor="amount" style={label}>Cantidad a pagar (MXN)</label>
+          <label htmlFor="amount" style={label}>
+            Cantidad a pagar (MXN)
+          </label>
           <input
             id="amount"
             style={input}
@@ -369,30 +510,53 @@ export default function PayServicesView({ userSettings, onBack }) {
           <p style={small}>
             {amount ? `Se pagarán ${toMXN(amount)}` : "Ej. 350.00"}
             {selectedSource && amount > 0 && (
-              <> · Saldo en {selectedSource.alias}: <b>{toMXN(selectedSource.balance)}</b></>
+              <>
+                {" "}
+                · Saldo en {selectedSource.alias}:{" "}
+                <b>{toMXN(selectedSource.balance)}</b>
+              </>
             )}
           </p>
-          {errors.amountStr && <p style={{ fontSize: "0.85rem", color: "#f87171" }}>{errors.amountStr}</p>}
+          {errors.amountStr && (
+            <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
+              {errors.amountStr}
+            </p>
+          )}
         </div>
 
         {/* Resumen */}
         <div style={fieldCard}>
           <div style={legend}>Resumen</div>
           <div style={{ fontSize: "0.95rem", color: subtleText }}>
-            <div><b>Cuenta de origen:</b> {selectedSource?.alias} · {selectedSource?.bank} · **** {selectedSource?.number.slice(-4)}</div>
-            <div><b>Servicio:</b> {summaryName}</div>
-            <div><b>Convenio:</b> {summaryConvenio}</div>
-            <div><b>Referencia:</b> {summaryRef || "-"}</div>
-            <div><b>Monto:</b> {toMXN(amount)}</div>
+            <div>
+              <b>Cuenta de origen:</b> {selectedSource?.alias} ·{" "}
+              {selectedSource?.bank} · **** {selectedSource?.number.slice(-4)}
+            </div>
+            <div>
+              <b>Servicio:</b> {summaryName}
+            </div>
+            <div>
+              <b>Convenio:</b> {summaryConvenio}
+            </div>
+            <div>
+              <b>Referencia:</b> {summaryRef || "-"}
+            </div>
+            <div>
+              <b>Monto:</b> {toMXN(amount)}
+            </div>
           </div>
         </div>
 
         {/* Acciones */}
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+        <div
+          style={{ display: "flex", justifyContent: "space-between", gap: 10 }}
+        >
           <button
             onClick={onBack}
             style={ghostBtn}
-            onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
+            onMouseDown={(e) =>
+              (e.currentTarget.style.transform = "scale(0.98)")
+            }
             onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
           >
             Cancelar
@@ -400,7 +564,11 @@ export default function PayServicesView({ userSettings, onBack }) {
           <button
             onClick={pay}
             disabled={submitting}
-            style={{ ...primaryBtn, backgroundColor: accentColor, opacity: submitting ? 0.8 : 1 }}
+            style={{
+              ...primaryBtn,
+              backgroundColor: accentColor,
+              opacity: submitting ? 0.8 : 1,
+            }}
             onMouseEnter={onHoverIn}
             onMouseLeave={onHoverOut}
             onMouseDown={onPressIn}
@@ -420,40 +588,98 @@ export default function PayServicesView({ userSettings, onBack }) {
           <div
             role="dialog"
             aria-modal="true"
-            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.4)",
+              display: "grid",
+              placeItems: "center",
+              padding: 16,
+              zIndex: 60,
+            }}
           >
-            <div style={{
-              width: "100%", maxWidth: 420, background: cardColor,
-              border: `1px solid ${borderColor}`, borderRadius: 18, padding: 16,
-              boxShadow: "0 6px 20px rgba(0,0,0,0.25)", textAlign: "center", color: textColor
-            }}>
-              <div style={{ fontSize: 40, lineHeight: 1, marginBottom: 8 }}>✅</div>
-              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 6 }}>¡Pago realizado!</h3>
-              <p style={{ color: subtleText, fontSize: "0.95rem", marginBottom: 12 }}>
+            <div
+              style={{
+                width: "100%",
+                maxWidth: 420,
+                background: cardColor,
+                border: `1px solid ${borderColor}`,
+                borderRadius: 18,
+                padding: 16,
+                boxShadow: "0 6px 20px rgba(0,0,0,0.25)",
+                textAlign: "center",
+                color: textColor,
+              }}
+            >
+              <div style={{ fontSize: 40, lineHeight: 1, marginBottom: 8 }}>
+                ✅
+              </div>
+              <h3
+                style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 6 }}
+              >
+                ¡Pago realizado!
+              </h3>
+              <p
+                style={{
+                  color: subtleText,
+                  fontSize: "0.95rem",
+                  marginBottom: 12,
+                }}
+              >
                 Tu pago se realizó correctamente.
               </p>
-              <div style={{
-                border: `1px solid ${borderColor}`, borderRadius: 12, padding: 12,
-                textAlign: "left", marginBottom: 12, fontSize: "0.95rem", color: textColor, background: inputBg
-              }}>
-                <div><b>Cuenta de origen:</b> {selectedSource?.alias} · **** {selectedSource?.number.slice(-4)}</div>
-                <div><b>Servicio:</b> {summaryName}</div>
-                <div><b>Convenio:</b> {summaryConvenio}</div>
-                <div><b>Referencia:</b> {summaryRef || "-"}</div>
-                <div><b>Monto:</b> {toMXN(amount)}</div>
-                <div><b>Folio:</b> {`SIM-${Date.now().toString().slice(-6)}`}</div>
+              <div
+                style={{
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: 12,
+                  padding: 12,
+                  textAlign: "left",
+                  marginBottom: 12,
+                  fontSize: "0.95rem",
+                  color: textColor,
+                  background: inputBg,
+                }}
+              >
+                <div>
+                  <b>Cuenta de origen:</b> {selectedSource?.alias} · ****{" "}
+                  {selectedSource?.number.slice(-4)}
+                </div>
+                <div>
+                  <b>Servicio:</b> {summaryName}
+                </div>
+                <div>
+                  <b>Convenio:</b> {summaryConvenio}
+                </div>
+                <div>
+                  <b>Referencia:</b> {summaryRef || "-"}
+                </div>
+                <div>
+                  <b>Monto:</b> {toMXN(amount)}
+                </div>
+                <div>
+                  <b>Folio:</b> {`SIM-${Date.now().toString().slice(-6)}`}
+                </div>
               </div>
-              <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+              <div
+                style={{ display: "flex", gap: 8, justifyContent: "center" }}
+              >
                 <button
                   onClick={() => setSuccessOpen(false)}
                   style={ghostBtn}
-                  onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
-                  onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                  onMouseDown={(e) =>
+                    (e.currentTarget.style.transform = "scale(0.98)")
+                  }
+                  onMouseUp={(e) =>
+                    (e.currentTarget.style.transform = "scale(1)")
+                  }
                 >
                   Hacer otro pago
                 </button>
                 <button
-                  onClick={() => { setSuccessOpen(false); onBack?.(); }}
+                  onClick={() => {
+                    setSuccessOpen(false);
+                    onBack?.();
+                  }}
                   style={{ ...primaryBtn, backgroundColor: accentColor }}
                   onMouseEnter={onHoverIn}
                   onMouseLeave={onHoverOut}

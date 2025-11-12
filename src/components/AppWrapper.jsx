@@ -46,26 +46,6 @@ const AppWrapper = ({ children, userSettings }) => {
           textAlign: "center",
         }}
       >
-        {/* Logo superior (opcional, solo si quieres mantenerlo en todos los pasos) */}
-        <div
-          style={{
-            width: "70px",
-            height: "70px",
-            borderRadius: "50%",
-            backgroundColor: accentColor,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            textAlign: "center",
-            fontWeight: "bold",
-            color: "#fff",
-            fontSize: "1.5rem",
-            margin: "0 auto 10px auto",
-          }}
-        >
-          BI
-        </div>
-
         {children}
       </div>
     </div>

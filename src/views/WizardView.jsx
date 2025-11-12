@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import PropTypes from "prop-types";
 import AppWrapper from "../components/AppWrapper";
 import { useFormController } from "../controllers/formController";
+import logo from "../assets/logo.png";
 
 // 🔊 Función de lectura (segura en SSR)
 function speakText(text) {
@@ -103,6 +104,25 @@ const WizardView = ({ onFinish }) => {
             padding: "8px",
           }}
         >
+        <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: "12px",
+            }}
+          >
+            <img
+              src={logo}
+              alt="Logo B-accesible"
+              style={{
+                backgroundColor: "white", // opcional
+                width: "90px",
+                height: "90px",
+                borderRadius: "50%",
+                objectFit: "cover",
+              }}
+            />
+          </div>
           {/* Encabezado */}
           <header style={{ textAlign: "center", marginBottom: "6px" }}>
             <h1 style={{ fontSize: "1.6rem", fontWeight: 700 }}>

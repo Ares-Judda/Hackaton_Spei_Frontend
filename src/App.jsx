@@ -26,19 +26,22 @@ const App = () => {
 
   const [hasCompletedWizard, setHasCompletedWizard] = useState(false);
 
-  // 🔄 Cargar configuraciones desde localStorage al iniciar
+  // ===== Nuevo estado para modo simple =====
+  const [simpleMode, setSimpleMode] = useState(false);
+
+  // 🔄 Cargar configuraciones y modo simple desde localStorage al iniciar
   useEffect(() => {
     const savedSettings = localStorage.getItem("userSettings");
-    if (savedSettings) {
-      setUserSettings(JSON.parse(savedSettings));
-      setHasCompletedWizard(true);
-    }
+    if (savedSettings) setUserSettings(JSON.parse(savedSettings));
+
+    const savedMode = localStorage.getItem("simpleMode");
+    if (savedMode) setSimpleMode(JSON.parse(savedMode));
   }, []);
 
   // Al terminar el Wizard
   const handleFinishWizard = (finalSettings) => {
     setUserSettings(finalSettings);
-    localStorage.setItem("userSettings", JSON.stringify(finalSettings)); // guardamos todo
+    localStorage.setItem("userSettings", JSON.stringify(finalSettings));
     setHasCompletedWizard(true);
     setCurrentView("home");
   };
@@ -66,7 +69,7 @@ const App = () => {
       {currentView === "wizard" && (
         <WizardView
           userSettings={userSettings}
-          setUserSettings={setUserSettings} // pasamos setter
+          setUserSettings={setUserSettings}
           onFinish={handleFinishWizard}
         />
       )}
@@ -74,6 +77,8 @@ const App = () => {
       {currentView === "home" && (
         <HomeView
           userSettings={userSettings}
+          simpleMode={simpleMode}          // 👈 prop
+          setSimpleMode={setSimpleMode}    // 👈 prop
           goToTransfer={() => setCurrentView("transfer")}
           goToReceive={() => setCurrentView("receive")}
           goToPay={() => setCurrentView("pay")}
