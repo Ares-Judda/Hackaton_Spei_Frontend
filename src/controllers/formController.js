@@ -2,11 +2,11 @@ import { useState } from "react";
 
 export const useFormController = () => {
   const [userSettings, setUserSettings] = useState({
-    font: "Segoe UI",
+    font: "Arial",
     theme: "light",
     fontSize: "16px",
     canReadSmallText: true,
-    usesScreenReader: true,
+    usesScreenReader: false,
     confidence: "medium",
     literacy: "medium",
     name: "",
