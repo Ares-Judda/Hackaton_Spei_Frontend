@@ -1,7 +1,7 @@
-import { useTransferController } from "../controllers/useTransferController";
 import React, { useEffect, useState } from "react";
+import { useTransferController } from "../controllers/useTransferController";
 
-export default function TransferView({ onBack }) {
+export default function TransferView({ userSettings, onBack }) {
   const {
     accounts,
     form, errors, savedContacts, selectedContact, selectedSourceAccount,
@@ -14,124 +14,159 @@ export default function TransferView({ onBack }) {
   const toMXN = (n) =>
     new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
 
-  // ===== estilos consistentes con Home =====
-  const palette = {
-    primary: "#0078D4",
-    bg: "#f0f0f0",
-    card: "#ffffff",
-    text: "#000",
-    subtle: "#666",
-    border: "#d1d5db",
-  };
+  // ====== Estilos consistentes con HomeView (usa userSettings) ======
+  const isDark = userSettings?.theme === "dark";
+  const accentColor = "#0078D4";
+  const buttonHover = "#005EA6";
+  const bgColor = isDark ? "#0f172a" : "#f9fafb";
+  const textColor = isDark ? "#e2e8f0" : "#1e293b";
+  const cardColor = isDark ? "#111827" : "#ffffff";
+  const borderColor = isDark ? "#293548" : "#d1d5db";
+  const subtleText = isDark ? "#94a3b8" : "#6b7280";
+  const inputBg = isDark ? "#0b1220" : "#ffffff";
+
+  const fontSizeBase = userSettings?.fontSize || "0.95rem";
 
   const container = {
     display: "flex",
     justifyContent: "center",
     minHeight: "100vh",
-    padding: "20px",
-    backgroundColor: palette.bg,
+    padding: "30px 20px",
+    backgroundColor: bgColor,
+    color: textColor,
+    transition: "background-color 0.3s ease, color 0.3s ease",
   };
 
   const shell = {
     width: "100%",
-    maxWidth: "400px",
+    maxWidth: "500px",
     display: "flex",
     flexDirection: "column",
-    gap: "20px",
-    color: palette.text,
+    gap: "18px",
   };
 
-  const h1 = { fontSize: "22px", fontWeight: 600, marginBottom: "4px" };
+  const headerRow = { display: "flex", alignItems: "center", gap: "10px" };
+
+  const h1 = { fontSize: "1.4rem", fontWeight: 700, margin: 0 };
 
   const fieldset = {
     display: "grid",
     gap: "10px",
-    backgroundColor: palette.card,
-    border: `1px solid ${palette.border}`,
-    borderRadius: "15px",
-    padding: "14px",
+    backgroundColor: cardColor,
+    border: `1px solid ${borderColor}`,
+    borderRadius: "18px",
+    padding: "16px",
+    boxShadow: isDark ? "0 4px 10px rgba(0,0,0,0.25)" : "0 4px 10px rgba(0,0,0,0.08)",
   };
 
   const legend = {
     padding: "0 6px",
-    fontSize: "14px",
-    fontWeight: 600,
+    fontSize: "0.9rem",
+    fontWeight: 700,
+    opacity: 0.9,
   };
 
-  const label = { fontSize: "14px", fontWeight: 500 };
-  const hint = { fontSize: "12px", color: palette.subtle };
-  const errorText = { fontSize: "12px", color: "#b91c1c" };
+  const label = { fontSize: fontSizeBase, fontWeight: 600 };
+  const hint = { fontSize: "0.85rem", color: subtleText };
+  const errorText = { fontSize: "0.85rem", color: "#f87171" };
 
   const input = {
     width: "100%",
-    padding: "10px",
-    borderRadius: "10px",
-    border: `1px solid ${palette.border}`,
+    padding: "12px 12px",
+    borderRadius: "12px",
+    border: `1px solid ${borderColor}`,
     outline: "none",
+    background: inputBg,
+    color: textColor,
+    fontSize: fontSizeBase,
+    transition: "border-color 0.2s ease",
   };
 
-  const radioRow = { display: "flex", gap: "16px", alignItems: "center" };
+  const radioRow = { display: "flex", gap: "16px", alignItems: "center", color: textColor };
 
   const primaryBtn = {
     border: "none",
-    borderRadius: "15px",
-    backgroundColor: palette.primary,
+    borderRadius: "16px",
+    backgroundColor: accentColor,
     color: "#fff",
-    fontWeight: "bold",
+    fontWeight: 700,
     padding: "12px 18px",
     minHeight: "44px",
     cursor: "pointer",
+    fontSize: fontSizeBase,
+    boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
+    transition: "background-color 0.3s ease, transform 0.1s ease",
   };
 
   const ghostBtn = {
-    border: `1px solid ${palette.border}`,
+    border: `1px solid ${borderColor}`,
     borderRadius: "12px",
-    background: "#fff",
-    padding: "8px 14px",
+    background: cardColor,
+    color: textColor,
+    padding: "10px 14px",
     cursor: "pointer",
+    fontSize: fontSizeBase,
+    transition: "background-color 0.3s ease, transform 0.1s ease",
   };
 
   const toastBox = (type) => ({
     borderRadius: "12px",
     padding: "10px",
-    fontSize: "14px",
+    fontSize: "0.95rem",
     border:
       type === "success" ? "1px solid #86efac" :
       type === "error"   ? "1px solid #fca5a5" :
-      type === "warn"    ? "1px solid #fde68a" : "1px solid #bfdbfe",
+      type === "warn"    ? "1px solid #fde68a" : `1px solid ${borderColor}`,
     background:
-      type === "success" ? "#f0fdf4" :
-      type === "error"   ? "#fef2f2" :
-      type === "warn"    ? "#fffbeb" : "#eff6ff",
+      type === "success" ? (isDark ? "#052e1b" : "#f0fdf4") :
+      type === "error"   ? (isDark ? "#3a0d0d" : "#fef2f2") :
+      type === "warn"    ? (isDark ? "#3b2e05" : "#fffbeb") :
+                           (isDark ? "#0b1220" : "#eff6ff"),
+    color: textColor,
   });
+
+  // ====== Hovers (como en HomeView) ======
+  const onHoverIn = (e) => (e.currentTarget.style.backgroundColor = buttonHover);
+  const onHoverOut = (e) => (e.currentTarget.style.backgroundColor = accentColor);
+  const onPressIn = (e) => (e.currentTarget.style.transform = "scale(0.98)");
+  const onPressOut = (e) => (e.currentTarget.style.transform = "scale(1)");
 
   useEffect(() => {
     if (toast?.type === "success") setSuccessOpen(true);
   }, [toast]);
 
-  // ===== UI =====
+  // ====== UI ======
   return (
     <div style={container}>
       <div style={shell}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        {/* Encabezado */}
+        <div style={headerRow}>
           {onBack && (
-            <button onClick={onBack} style={ghostBtn}>← Volver</button>
+            <button
+              onClick={onBack}
+              style={ghostBtn}
+              onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
+              onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            >
+              ← Volver
+            </button>
           )}
           <h1 style={h1}>Transferir dinero</h1>
         </div>
 
+        {/* Toast (errores/avisos) */}
         {toast && toast.type !== "success" && (
-          <div style={toastBox(toast.type)}>
-            {toast.msg}
-          </div>
+          <div style={toastBox(toast.type)}>{toast.msg}</div>
         )}
 
-        <form onSubmit={submit} style={{ display: "grid", gap: "14px" }}>
+        <form onSubmit={submit} style={{ display: "grid", gap: "16px" }}>
           {/* Cuenta origen */}
           <fieldset style={fieldset}>
             <legend style={legend}>Cuenta origen</legend>
             <div>
-              <label htmlFor="sourceAccountId" style={label}>Selecciona la cuenta desde la que enviarás</label>
+              <label htmlFor="sourceAccountId" style={label}>
+                Selecciona la cuenta desde la que enviarás
+              </label>
               <select
                 id="sourceAccountId"
                 style={input}
@@ -265,14 +300,14 @@ export default function TransferView({ onBack }) {
           </fieldset>
 
           {/* Pie */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <p style={{ fontSize: "14px", color: palette.subtle }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+            <p style={{ fontSize: "0.9rem", color: subtleText }}>
               Riesgo estimado:{" "}
               <b
                 style={{
                   color:
-                    risk.level === "alto" ? "#b91c1c" :
-                    risk.level === "medio" ? "#a16207" : "#166534",
+                    risk.level === "alto" ? "#f87171" :
+                    risk.level === "medio" ? "#eab308" : "#22c55e",
                 }}
               >
                 {risk.level.toUpperCase()}
@@ -280,7 +315,15 @@ export default function TransferView({ onBack }) {
               · {risk.msg}
             </p>
 
-            <button type="submit" disabled={submitting} style={primaryBtn}>
+            <button
+              type="submit"
+              disabled={submitting}
+              style={{ ...primaryBtn, backgroundColor: accentColor, opacity: submitting ? 0.8 : 1 }}
+              onMouseEnter={onHoverIn}
+              onMouseLeave={onHoverOut}
+              onMouseDown={onPressIn}
+              onMouseUp={onPressOut}
+            >
               {submitting ? "Procesando..." : "Continuar"}
             </button>
           </div>
@@ -304,17 +347,19 @@ export default function TransferView({ onBack }) {
             <div
               style={{
                 width: "100%",
-                maxWidth: "400px",
-                background: "#fff",
-                borderRadius: "15px",
+                maxWidth: "420px",
+                background: cardColor,
+                border: `1px solid ${borderColor}`,
+                borderRadius: "18px",
                 padding: "16px",
-                boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
+                boxShadow: "0 6px 20px rgba(0,0,0,0.25)",
+                color: textColor,
               }}
             >
-              <h3 style={{ fontSize: "18px", fontWeight: 600, marginBottom: "8px" }}>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "8px" }}>
                 Confirma la transferencia
               </h3>
-              <ul style={{ marginBottom: "12px", fontSize: "14px", color: palette.subtle }}>
+              <ul style={{ marginBottom: "12px", fontSize: "0.95rem", color: subtleText }}>
                 <li><b>Cuenta origen:</b> {selectedSourceAccount?.alias} — {selectedSourceAccount?.accountNumber}</li>
                 <li><b>Destinatario:</b> {selectedContact?.alias}</li>
                 <li><b>CLABE:</b> {selectedContact?.clabe}</li>
@@ -325,8 +370,24 @@ export default function TransferView({ onBack }) {
                 )}
               </ul>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-                <button onClick={() => setConfirmOpen(false)} style={ghostBtn}>Cancelar</button>
-                <button onClick={confirm} style={primaryBtn}>Confirmar y enviar</button>
+                <button
+                  onClick={() => setConfirmOpen(false)}
+                  style={ghostBtn}
+                  onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
+                  onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirm}
+                  style={{ ...primaryBtn, backgroundColor: accentColor }}
+                  onMouseEnter={onHoverIn}
+                  onMouseLeave={onHoverOut}
+                  onMouseDown={onPressIn}
+                  onMouseUp={onPressOut}
+                >
+                  Confirmar y enviar
+                </button>
               </div>
             </div>
           </div>
@@ -350,31 +411,34 @@ export default function TransferView({ onBack }) {
             <div
               style={{
                 width: "100%",
-                maxWidth: "400px",
-                background: "#fff",
-                borderRadius: "15px",
+                maxWidth: "420px",
+                background: cardColor,
+                border: `1px solid ${borderColor}`,
+                borderRadius: "18px",
                 padding: "16px",
-                boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
+                boxShadow: "0 6px 20px rgba(0,0,0,0.25)",
                 textAlign: "center",
+                color: textColor,
               }}
             >
               <div style={{ fontSize: 40, lineHeight: 1, marginBottom: 8 }}>✅</div>
-              <h3 style={{ fontSize: "18px", fontWeight: 600, marginBottom: "6px" }}>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "6px" }}>
                 ¡Transferencia enviada!
               </h3>
-              <p style={{ color: "#666", fontSize: 14, marginBottom: 12 }}>
+              <p style={{ color: subtleText, fontSize: "0.95rem", marginBottom: 12 }}>
                 Tu operación se realizó correctamente.
               </p>
 
               <div
                 style={{
-                  border: "1px solid #d1d5db",
+                  border: `1px solid ${borderColor}`,
                   borderRadius: 12,
                   padding: 12,
                   textAlign: "left",
                   marginBottom: 12,
-                  fontSize: 14,
-                  color: "#444",
+                  fontSize: "0.95rem",
+                  color: textColor,
+                  background: inputBg,
                 }}
               >
                 <div><b>Cuenta origen:</b> {selectedSourceAccount?.alias}</div>
@@ -388,13 +452,9 @@ export default function TransferView({ onBack }) {
               <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
                 <button
                   onClick={() => setSuccessOpen(false)}
-                  style={{
-                    border: "1px solid #d1d5db",
-                    borderRadius: "12px",
-                    background: "#fff",
-                    padding: "8px 14px",
-                    cursor: "pointer",
-                  }}
+                  style={ghostBtn}
+                  onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
+                  onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
                 >
                   Hacer otra transferencia
                 </button>
@@ -403,16 +463,11 @@ export default function TransferView({ onBack }) {
                     setSuccessOpen(false);
                     onBack?.();
                   }}
-                  style={{
-                    border: "none",
-                    borderRadius: "15px",
-                    backgroundColor: "#0078D4",
-                    color: "#fff",
-                    fontWeight: "bold",
-                    padding: "12px 18px",
-                    minHeight: "44px",
-                    cursor: "pointer",
-                  }}
+                  style={{ ...primaryBtn, backgroundColor: accentColor }}
+                  onMouseEnter={onHoverIn}
+                  onMouseLeave={onHoverOut}
+                  onMouseDown={onPressIn}
+                  onMouseUp={onPressOut}
                 >
                   Ir al inicio
                 </button>
@@ -420,6 +475,18 @@ export default function TransferView({ onBack }) {
             </div>
           </div>
         )}
+
+        {/* Pie */}
+        <p
+          style={{
+            fontSize: "0.75rem",
+            opacity: 0.6,
+            marginTop: "6px",
+            textAlign: "center",
+          }}
+        >
+          © 2025 Banco Inclusivo — Interfaz accesible para todos
+        </p>
       </div>
     </div>
   );

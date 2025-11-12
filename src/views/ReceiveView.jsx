@@ -15,26 +15,119 @@ export default function ReceiveView({ userSettings, onBack }) {
 
   const [qrAmount, setQrAmount]   = useState("");
   const [qrConcept, setQrConcept] = useState("");
-  const [qrUrl, setQrUrl]         = useState("");   // <- aquí se guarda el src del QR
+  const [qrUrl, setQrUrl]         = useState("");
 
-  const palette = { primary:"#0078D4", bg:"#f0f0f0", card:"#fff", text:"#000", subtle:"#666", border:"#d1d5db" };
-  const container = { display:"flex", justifyContent:"center", minHeight:"100vh", padding:"20px", backgroundColor:palette.bg, fontFamily:userSettings?.font||"Arial", fontSize:userSettings?.fontSize||"16px" };
-  const shell     = { width:"100%", maxWidth:"400px", display:"flex", flexDirection:"column", gap:"18px", color:palette.text };
-  const h1        = { fontSize:"22px", fontWeight:600, marginBottom:"4px" };
-  const label     = { fontSize:13, fontWeight:600 };
-  const small     = { fontSize:12, color:palette.subtle };
-  const ghostBtn  = { border:`1px solid ${palette.border}`, borderRadius:12, background:"#fff", padding:"8px 14px", cursor:"pointer" };
-  const primaryBtn= { border:"none", borderRadius:15, backgroundColor:palette.primary, color:"#fff", fontWeight:"bold", padding:"12px 18px", minHeight:44, cursor:"pointer" };
-  const fieldCard = { background:palette.card, border:`1px solid ${palette.border}`, borderRadius:15, padding:14 };
-  const input     = { width:"100%", padding:10, borderRadius:10, border:`1px solid ${palette.border}`, outline:"none" };
-  const toastBox  = (type)=>({ borderRadius:12, padding:10, fontSize:14, border:type==="success"?"1px solid #86efac":"1px solid #fca5a5", background:type==="success"?"#f0fdf4":"#fef2f2" });
+  // ===== Estilos coherentes con Home/Transfer/Accounts usando userSettings =====
+  const isDark = userSettings?.theme === "dark";
+  const accentColor = "#0078D4";
+  const buttonHover = "#005EA6";
+  const bgColor = isDark ? "#0f172a" : "#f9fafb";
+  const textColor = isDark ? "#e2e8f0" : "#1e293b";
+  const cardColor = isDark ? "#111827" : "#ffffff";
+  const inputBg = isDark ? "#0b1220" : "#ffffff";
+  const borderColor = isDark ? "#293548" : "#d1d5db";
+  const subtleText = isDark ? "#94a3b8" : "#6b7280";
+  const fontSizeBase = userSettings?.fontSize || "0.95rem";
+  const fontFamily = userSettings?.font || "system-ui, -apple-system, Segoe UI, Roboto, Arial";
 
+  const container = {
+    display: "flex",
+    justifyContent: "center",
+    minHeight: "100vh",
+    padding: "30px 20px",
+    backgroundColor: bgColor,
+    color: textColor,
+    transition: "background-color 0.3s ease, color 0.3s ease",
+    fontFamily,
+  };
+  const shell = { width: "100%", maxWidth: "500px", display: "flex", flexDirection: "column", gap: "18px" };
+  const h1 = { fontSize: "1.4rem", fontWeight: 700, margin: 0 };
+  const label = { fontSize: fontSizeBase, fontWeight: 700, color: textColor };
+  const small = { fontSize: "0.85rem", color: subtleText };
+
+  const ghostBtn = {
+    border: `1px solid ${borderColor}`,
+    borderRadius: 12,
+    background: cardColor,
+    color: textColor,
+    padding: "10px 14px",
+    cursor: "pointer",
+    fontSize: fontSizeBase,
+    transition: "background-color 0.3s ease, transform 0.1s ease",
+  };
+  const primaryBtn = {
+    border: "none",
+    borderRadius: 16,
+    backgroundColor: accentColor,
+    color: "#fff",
+    fontWeight: 700,
+    padding: "12px 18px",
+    minHeight: 44,
+    cursor: "pointer",
+    fontSize: fontSizeBase,
+    boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
+    transition: "background-color 0.3s ease, transform 0.1s ease",
+  };
+  const fieldCard = {
+    background: cardColor,
+    border: `1px solid ${borderColor}`,
+    borderRadius: 18,
+    padding: 16,
+    boxShadow: isDark ? "0 4px 10px rgba(0,0,0,0.25)" : "0 4px 10px rgba(0,0,0,0.08)",
+  };
+  const input = {
+    width: "100%",
+    padding: 12,
+    borderRadius: 12,
+    border: `1px solid ${borderColor}`,
+    outline: "none",
+    background: inputBg,
+    color: textColor,
+    fontSize: fontSizeBase,
+  };
+  const toastBox = (type) => ({
+    borderRadius: 12,
+    padding: 10,
+    fontSize: "0.95rem",
+    border: type === "success" ? "1px solid #86efac" : "1px solid #fca5a5",
+    background: type === "success" ? (isDark ? "#052e1b" : "#f0fdf4") : (isDark ? "#3a0d0d" : "#fef2f2"),
+    color: textColor,
+  });
+
+  const chip = (active) => ({
+    padding: "10px 12px",
+    borderRadius: 14,
+    border: active ? `2px solid ${accentColor}` : `1px solid ${borderColor}`,
+    background: active ? (isDark ? "#0b1220" : "#f0f8ff") : cardColor,
+    cursor: "pointer",
+    flex: 1,
+    display: "grid",
+    placeItems: "center",
+    gap: 4,
+    color: textColor,
+    transition: "border-color 0.2s ease, transform 0.1s ease",
+  });
+
+  // ===== Hovers/press como en las otras vistas =====
+  const onHoverIn = (e) => (e.currentTarget.style.backgroundColor = buttonHover);
+  const onHoverOut = (e) => (e.currentTarget.style.backgroundColor = accentColor);
+  const onPressIn = (e) => (e.currentTarget.style.transform = "scale(0.98)");
+  const onPressOut = (e) => (e.currentTarget.style.transform = "scale(1)");
+
+  // ===== Clipboard / share =====
   const copyToClipboard = async (text, label) => {
     try {
       if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
-      else { const ta=document.createElement("textarea"); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); }
-      setToast({ type:"success", msg:`${label} copiado` }); setTimeout(dismissToast,1800);
-    } catch { setToast({ type:"error", msg:`No se pudo copiar ${label}` }); setTimeout(dismissToast,2000); }
+      else {
+        const ta = document.createElement("textarea");
+        ta.value = text; document.body.appendChild(ta);
+        ta.select(); document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      setToast({ type: "success", msg: `${label} copiado` }); setTimeout(dismissToast, 1800);
+    } catch {
+      setToast({ type: "error", msg: `No se pudo copiar ${label}` }); setTimeout(dismissToast, 2000);
+    }
   };
 
   const shareData = async () => {
@@ -43,12 +136,16 @@ CLABE: ${selected.clabe}
 Cuenta: ${selected.accountNumber}
 Banco: ${selected.bank}`;
     if (navigator.share) {
-      try { await navigator.share({ title:"Datos para transferencia", text }); setToast({ type:"success", msg:"Compartido" }); setTimeout(dismissToast,1500); }
-      catch {}
-    } else copyToClipboard(text, "Datos de transferencia");
+      try {
+        await navigator.share({ title: "Datos para transferencia", text });
+        setToast({ type: "success", msg: "Compartido" }); setTimeout(dismissToast, 1500);
+      } catch {}
+    } else {
+      copyToClipboard(text, "Datos de transferencia");
+    }
   };
 
-  // --- QR helpers ---
+  // ===== QR helpers =====
   const buildCodiPayload = () => {
     const amount = String(qrAmount).trim();
     return JSON.stringify({
@@ -66,15 +163,12 @@ Banco: ${selected.bank}`;
 
   const generateQr = () => {
     const data = encodeURIComponent(buildCodiPayload());
-    const cacheBust = Date.now(); // evita cache
+    const cacheBust = Date.now();
     setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${data}&cb=${cacheBust}`);
   };
 
-  // Genera por defecto al entrar:
-  useEffect(() => { generateQr(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
-
-  // Regenera cuando cambien cuenta / monto / concepto:
-  useEffect(() => { generateQr(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [selectedId, qrAmount, qrConcept]);
+  useEffect(() => { generateQr(); /* mount */ }, []);
+  useEffect(() => { generateQr(); /* deps */ }, [selectedId, qrAmount, qrConcept]);
 
   const downloadQr = async () => {
     if (!qrUrl) return;
@@ -85,7 +179,9 @@ Banco: ${selected.bank}`;
       const a = document.createElement("a");
       a.href = url; a.download = `CoDiQR_${selected.alias}.png`;
       document.body.appendChild(a); a.click(); URL.revokeObjectURL(url); a.remove();
-    } catch { setToast({ type:"error", msg:"No se pudo descargar el QR" }); setTimeout(dismissToast,1800); }
+    } catch {
+      setToast({ type: "error", msg: "No se pudo descargar el QR" }); setTimeout(dismissToast, 1800);
+    }
   };
 
   const shareQr = async () => {
@@ -93,42 +189,47 @@ Banco: ${selected.bank}`;
     try {
       const res = await fetch(qrUrl);
       const blob = await res.blob();
-      const file = new File([blob], `CoDiQR_${selected.alias}.png`, { type:"image/png" });
-      if (navigator.canShare({ files:[file] })) {
-        await navigator.share({ title:"QR de cobro", text:"Escanea para pagar (demo)", files:[file] });
+      const file = new File([blob], `CoDiQR_${selected.alias}.png`, { type: "image/png" });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ title: "QR de cobro", text: "Escanea para pagar (demo)", files: [file] });
       } else {
-        await navigator.share({ title:"QR de cobro", text: qrUrl });
+        await navigator.share({ title: "QR de cobro", text: qrUrl });
       }
     } catch {}
   };
 
-  // --- Render ---
+  // ===== Render =====
   return (
     <div style={container}>
       <div style={shell}>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          {onBack && <button onClick={onBack} style={ghostBtn}>← Volver</button>}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {onBack && (
+            <button
+              onClick={onBack}
+              style={ghostBtn}
+              onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
+              onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            >
+              ← Volver
+            </button>
+          )}
           <h1 style={h1}>Recibir dinero</h1>
         </div>
 
         {/* Cuenta a recibir */}
         <div style={fieldCard}>
           <label style={label}>Cuenta a recibir</label>
-          <div style={{ marginTop:10, display:"flex", gap:8 }}>
+          <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
             {accounts.map((acc) => (
               <button
                 key={acc.id}
                 onClick={() => setSelectedId(acc.id)}
-                style={{
-                  padding:"8px 10px",
-                  borderRadius:10,
-                  border: selectedId===acc.id ? `2px solid ${palette.primary}` : `1px solid ${palette.border}`,
-                  background: selectedId===acc.id ? "#f0f8ff" : "#fff",
-                  cursor:"pointer",
-                  flex:1,
-                }}
+                style={chip(selectedId === acc.id)}
+                onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
+                onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                aria-label={`Seleccionar ${acc.alias}`}
               >
-                <div style={{ fontWeight:600 }}>{acc.alias}</div>
+                <div style={{ fontWeight: 700 }}>{acc.alias}</div>
                 <div style={small}>{acc.accountNumber}</div>
               </button>
             ))}
@@ -137,16 +238,19 @@ Banco: ${selected.bank}`;
 
         {/* Datos principales */}
         <div style={fieldCard}>
-          <div style={{ fontSize:14, fontWeight:700 }}>{selected.name}</div>
-          <div style={{ fontSize:13, color:palette.subtle }}>{selected.bank}</div>
+          <div style={{ fontSize: "0.95rem", fontWeight: 700 }}>{selected.name}</div>
+          <div style={small}>{selected.bank}</div>
 
-          <div style={{ marginTop:12, display:"grid", gap:8 }}>
+          <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
             <div>
               <div style={small}>CLABE</div>
-              <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                <div style={{ fontWeight:700, letterSpacing:1 }}>{selected.clabe}</div>
-                <button onClick={() => copyToClipboard(selected.clabe, "CLABE")} aria-label="Copiar CLABE"
-                        style={{ border:"none", background:"transparent", cursor:"pointer", color:palette.primary }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div style={{ fontWeight: 700, letterSpacing: 1 }}>{selected.clabe}</div>
+                <button
+                  onClick={() => copyToClipboard(selected.clabe, "CLABE")}
+                  aria-label="Copiar CLABE"
+                  style={{ border: "none", background: "transparent", cursor: "pointer", color: accentColor }}
+                >
                   <FaCopy />
                 </button>
               </div>
@@ -154,17 +258,20 @@ Banco: ${selected.bank}`;
 
             <div>
               <div style={small}>Número de cuenta</div>
-              <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                <div style={{ fontWeight:700 }}>{selected.accountNumber}</div>
-                <button onClick={() => copyToClipboard(selected.accountNumber, "Número de cuenta")} aria-label="Copiar número"
-                        style={{ border:"none", background:"transparent", cursor:"pointer", color:palette.primary }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div style={{ fontWeight: 700 }}>{selected.accountNumber}</div>
+                <button
+                  onClick={() => copyToClipboard(selected.accountNumber, "Número de cuenta")}
+                  aria-label="Copiar número de cuenta"
+                  style={{ border: "none", background: "transparent", cursor: "pointer", color: accentColor }}
+                >
                   <FaCopy />
                 </button>
               </div>
             </div>
           </div>
 
-          <div style={{ display:"flex", gap:10, marginTop:12 }}>
+          <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
             <button
               onClick={() =>
                 copyToClipboard(
@@ -172,12 +279,21 @@ Banco: ${selected.bank}`;
                   "Datos de transferencia"
                 )
               }
-              style={{ flex:1, borderRadius:12, padding:12, border:`1px solid ${palette.border}`, background:"#fff", cursor:"pointer" }}
+              style={ghostBtn}
+              onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
+              onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
             >
               Copiar todo
             </button>
-            <button onClick={shareData} style={{ flex:1, ...primaryBtn }}>
-              <div style={{ display:"flex", gap:8, alignItems:"center", justifyContent:"center" }}>
+            <button
+              onClick={shareData}
+              style={primaryBtn}
+              onMouseEnter={onHoverIn}
+              onMouseLeave={onHoverOut}
+              onMouseDown={onPressIn}
+              onMouseUp={onPressOut}
+            >
+              <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center" }}>
                 <FaShareAlt /> Compartir
               </div>
             </button>
@@ -186,38 +302,70 @@ Banco: ${selected.bank}`;
 
         {/* QR siempre visible */}
         <div style={fieldCard}>
-          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <FaQrcode />
-            <div style={{ fontSize:16, fontWeight:700 }}>QR para cobrar </div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>QR para cobrar</div>
           </div>
 
-          <div style={{ display:"grid", placeItems:"center", gap:10, marginBottom:10 }}>
+          <div style={{ display: "grid", placeItems: "center", gap: 10, marginBottom: 10 }}>
             {qrUrl ? (
-              <img src={qrUrl} alt="QR para cobrar"
-                   style={{ width:240, height:240, borderRadius:12, border:`1px solid ${palette.border}`, background:"#fff", padding:6 }} />
+              <img
+                src={qrUrl}
+                alt="QR para cobrar"
+                style={{
+                  width: 240,
+                  height: 240,
+                  borderRadius: 12,
+                  border: `1px solid ${borderColor}`,
+                  background: cardColor,
+                  padding: 6,
+                }}
+              />
             ) : (
-              <div style={{
-                width:240, height:240, borderRadius:12, border:`1px dashed ${palette.border}`,
-                display:"grid", placeItems:"center", background:"#fff", color:palette.subtle
-              }}>
+              <div
+                style={{
+                  width: 240,
+                  height: 240,
+                  borderRadius: 12,
+                  border: `1px dashed ${borderColor}`,
+                  display: "grid",
+                  placeItems: "center",
+                  background: cardColor,
+                  color: subtleText,
+                }}
+              >
                 Generando QR…
               </div>
             )}
 
-            <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-              <button onClick={downloadQr} type="button" style={ghostBtn} disabled={!qrUrl}>
-                <FaDownload style={{ marginRight:6 }} /> Descargar
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                onClick={downloadQr}
+                type="button"
+                style={ghostBtn}
+                disabled={!qrUrl}
+                onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
+                onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+              >
+                <FaDownload style={{ marginRight: 6 }} /> Descargar
               </button>
               {navigator.share && (
-                <button onClick={shareQr} type="button" style={ghostBtn} disabled={!qrUrl}>
-                  <FaShareAlt style={{ marginRight:6 }} /> Compartir QR
+                <button
+                  onClick={shareQr}
+                  type="button"
+                  style={ghostBtn}
+                  disabled={!qrUrl}
+                  onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
+                  onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                >
+                  <FaShareAlt style={{ marginRight: 6 }} /> Compartir QR
                 </button>
               )}
             </div>
           </div>
 
           {/* Opcionales SIN obligar */}
-          <div style={{ display:"grid", gap:10 }}>
+          <div style={{ display: "grid", gap: 10 }}>
             <div>
               <label style={label}>Monto (opcional)</label>
               <input
@@ -242,7 +390,7 @@ Banco: ${selected.bank}`;
             </div>
           </div>
 
-          <div style={{ marginTop:6, ...small }}>
+          <div style={{ marginTop: 6, ...small }}>
             Este QR es de demostración. En producción, usa el formato oficial de CoDi.
           </div>
         </div>
