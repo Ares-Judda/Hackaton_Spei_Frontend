@@ -49,13 +49,22 @@ const HomeView = ({
     }
   }, [userSettings?.usesScreenReader, setSimpleMode]);
 
-  // Leer información principal al cargar la vista
   useEffect(() => {
+    if (!voiceNavActive) {
+      setVoiceNavActive(true);
+      setUserSettings((prev) => {
+        const updated = { ...prev, usesScreenReader: true };
+        localStorage.setItem("userSettings", JSON.stringify(updated));
+        return updated;
+      });
+    }
+
+    // Leer bienvenida
     speakText(
       `Bienvenido, ${userName}. Tu saldo disponible es ${balance} pesos.`,
       userSettings
     );
-  }, [userName, balance, userSettings]);
+  }, []);
 
   const fullActions = [
     {
