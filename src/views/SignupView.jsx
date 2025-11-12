@@ -1,6 +1,7 @@
 
 // src/views/SignupView.jsx
 import React, { useEffect, useState } from "react";
+import logo from "../assets/logo.png";
 import StepWrapper from "../components/StepWrapper";
 
 const SignupView = ({ userSettings, onBackToLogin, onSignupSuccess }) => {
@@ -8,14 +9,14 @@ const SignupView = ({ userSettings, onBackToLogin, onSignupSuccess }) => {
 
   // Campos del formulario
   const [fullName, setFullName] = useState("");
-  const [email, setEmail]       = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirm, setConfirm]   = useState("");
-  const [accept, setAccept]     = useState(false);
+  const [confirm, setConfirm] = useState("");
+  const [accept, setAccept] = useState(false);
 
   // UI
   const [submitting, setSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg]     = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     const saved = localStorage.getItem("appTheme");
@@ -26,8 +27,8 @@ const SignupView = ({ userSettings, onBackToLogin, onSignupSuccess }) => {
     localStorage.setItem("appTheme", theme);
   }, [theme]);
 
-  const isDark      = theme === "dark";
-  const textColor   = isDark ? "#e2e8f0" : "#1e293b";
+  const isDark = theme === "dark";
+  const textColor = isDark ? "#e2e8f0" : "#1e293b";
   const borderColor = isDark ? "#334155" : "#d1d5db";
   const accentColor = "#0078D4";
 
@@ -79,22 +80,38 @@ const SignupView = ({ userSettings, onBackToLogin, onSignupSuccess }) => {
         {/* Logo */}
         <div
           style={{
-            width: "70px",
-            height: "70px",
+            width: "90px",
+            height: "90px",
             borderRadius: "50%",
-            backgroundColor: accentColor,
+            overflow: "hidden",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            textAlign: "center",
-            fontWeight: "bold",
-            color: "#fff",
-            fontSize: "1.5rem",
             marginBottom: "8px",
+            backgroundColor: "#ffffff", // opcional
           }}
         >
-          BI
+          <img
+            src={logo}
+            alt="Logo B-accesible"
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+          />
         </div>
+
+        {/* 🔹 Título */}
+        <h1
+          style={{
+            fontSize: "1.5rem",
+            fontWeight: "bold",
+            marginBottom: "4px",
+          }}
+        >
+          B-Accesible
+        </h1>
 
         {/* Título */}
         <h1 style={{ fontSize: "1.5rem", fontWeight: "bold", marginBottom: "4px" }}>

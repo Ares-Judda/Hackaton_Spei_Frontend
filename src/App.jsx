@@ -8,6 +8,7 @@ import PayServicesView from "./views/PayServicesView";
 import AccountsView from "./views/AccountsView";
 import CardsView from "./views/CardsView";
 import SignupView from "./views/SignupView";
+import PreferencesView from "./views/PreferencesView";
 
 const App = () => {
   const [currentView, setCurrentView] = useState("login");
@@ -94,6 +95,7 @@ const App = () => {
           goToPay={() => setCurrentView("pay")}
           goToAccouts={() => setCurrentView("accounts")}
           goToCards={() => setCurrentView("cards")}
+          goToPreferences={() => setCurrentView("preferences")}
         />
       )}
 
@@ -115,6 +117,10 @@ const App = () => {
 
       {currentView === "cards" && (
         <CardsView userSettings={userSettings} onBack={() => setCurrentView("home")} />
+      )}
+
+      {currentView === "preferences" && (
+        <PreferencesView userSettings={userSettings} onBack={() => setCurrentView("home")} />
       )}
     </>
   );

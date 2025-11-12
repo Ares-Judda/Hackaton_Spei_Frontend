@@ -10,7 +10,7 @@ import {
 } from "react-icons/fa";
 import logo from "../assets/logo.png";
 
-const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccouts, goToCards }) => {
+const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccouts, goToCards, goToPreferences }) => {
 
   const [simpleMode, setSimpleMode] = useState(false);
 
@@ -39,22 +39,22 @@ const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccout
   const fullActions = [
     {
       icon: <FaArrowDown />,
-      label: "Recibir",
+      label: "Recibir dinero",
       onClick: () => goToReceive(),
     },
     {
       icon: <FaArrowUp />,
-      label: "Transferir",
+      label: "Enviar dinero",
       onClick: () => goToTransfer(),
     },
     {
       icon: <FaWallet />,
-      label: "Saldo / Cuentas",
+      label: "Consultar saldos",
       onClick: () => goToAccouts(),
     },
     {
       icon: <FaMoneyBillWave />,
-      label: "Pago de servicios",
+      label: "Pagar servicios",
       onClick: () => goToPay(),
     },
 
@@ -66,13 +66,13 @@ const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccout
     },
     {
       icon: <FaChartLine />,
-      label: "Inversiones",
+      label: "Ahorrar e invertir",
       onClick: () => alert("Ver inversiones"),
     },
     {
       icon: <FaCog />,
-      label: "Ajustes",
-      onClick: () => alert("Configurar cuenta"),
+      label: "Preferencias",
+      onClick: () => goToPreferences(),
     },
 
   ];
@@ -80,22 +80,22 @@ const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccout
   const simpleActions = [
     {
       icon: <FaArrowDown />,
-      label: "Recibir",
+      label: "Recibir dinero",
       onClick: () => goToReceive(),
     },
     {
       icon: <FaArrowUp />,
-      label: "Transferir",
+      label: "Enviar dinero",
       onClick: () => goToTransfer(),
     },
     {
       icon: <FaWallet />,
-      label: "Saldo / Cuentas",
+      label: "Consultar saldos",
       onClick: () => goToAccouts(),
     },
     {
       icon: <FaMoneyBillWave />,
-      label: "Pago de servicios",
+      label: "Pagar servicios",
       onClick: () => goToPay(),
     },
   ];

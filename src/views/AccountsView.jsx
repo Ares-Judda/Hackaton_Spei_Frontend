@@ -329,7 +329,7 @@ Cuenta: ${sel.accountNumber}`;
             <p>B-Accesible</p>
           </div>
         </div>
-              <h1 style={h1}>Saldo y Cuentas </h1>
+              <h1 style={h1}>Consultar saldos </h1>
         {/* Tarjeta total + ocultar montos */}
         <div style={fieldCard}>
           <div

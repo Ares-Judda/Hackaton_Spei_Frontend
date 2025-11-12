@@ -219,7 +219,7 @@ export default function TransferView({ userSettings, onBack }) {
           </div>
         </div>
 
-        <h1 style={h1}>Transferir dinero</h1>
+        <h1 style={h1}>Enviar dinero</h1>
         {toast && toast.type !== "success" && (
           <div style={toastBox(toast.type)}>{toast.msg}</div>
         )}
