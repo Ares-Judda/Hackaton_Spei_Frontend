@@ -56,6 +56,104 @@
   --color-placeholder: #C8C6C4;
 }
 
+/* =========================
+   Tema: Alto Contraste (match a tu ejemplo)
+   Actívalo con: <body class="theme-high-contrast">
+========================= */
+
+/* === Alto contraste (variables) === */
+.theme-high-contrast {
+  --color-bg-main: #0f172a;
+  --color-bg-card: #0a0a0a;
+  --color-text-main: #ffffff;
+  --color-text-secondary: #cccccc;
+  --color-border: #19e6ff;
+  --color-accent: #19e6ff;
+  --color-success: #22ffb2;
+  --color-error: #ff5c5c;
+  --color-input-bg: #111111;
+  --color-input-text: #ffffff;
+  --color-input-border: #19e6ff;
+  --color-placeholder: #cccccc;
+  --focus-outline: #19e6ff;
+
+  /* Aliases que SÍ usarás abajo */
+  --bg: var(--color-bg-main);
+  --card-bg: var(--color-bg-card);
+  --text: var(--color-text-main);
+  --muted-text: var(--color-text-secondary);
+  --border-color: var(--color-border);
+  --accent-color: var(--color-accent);
+}
+
+/* === Base del layout === */
+.theme-high-contrast, 
+.theme-high-contrast body, 
+.theme-high-contrast #root {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+}
+
+/* Títulos / links de cabecera tipo imagen 1 */
+.theme-high-contrast h1,h2,h3,h4,strong { color: var(--accent-color) !important; }
+.theme-high-contrast a { color: var(--accent-color) !important; }
+.theme-high-contrast a:hover { text-decoration: underline; }
+
+/* Tarjetas */
+.theme-high-contrast .card,
+.theme-high-contrast .panel,
+.theme-high-contrast .widget,
+.theme-high-contrast .bg-white {
+  background: var(--card-bg) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 16px !important;
+}
+
+/* Textos secundarios */
+.theme-high-contrast p,
+.theme-high-contrast label,
+.theme-high-contrast span,
+.theme-high-contrast li {
+  color: var(--muted-text) !important;
+}
+
+/* Inputs / botones */
+.theme-high-contrast input,
+.theme-high-contrast select,
+.theme-high-contrast textarea,
+.theme-high-contrast button {
+  background: var(--color-input-bg) !important;
+  color: var(--color-input-text) !important;
+  border: 1px solid var(--color-input-border) !important;
+}
+.theme-high-contrast button {  font-weight: 600; }
+.theme-high-contrast :focus { outline: 3px solid var(--focus-outline); outline-offset: 2px; }
+
+/* Forzar utilidades comunes de Tailwind que rompen el tema */
+.theme-high-contrast .bg-slate-900,
+.theme-high-contrast .bg-slate-800,
+.theme-high-contrast .bg-slate-700,
+.theme-high-contrast .bg-emerald-50,
+.theme-high-contrast .bg-emerald-100,
+.theme-high-contrast .bg-sky-50,
+.theme-high-contrast .bg-sky-100,
+.theme-high-contrast .bg-amber-50,
+.theme-high-contrast .bg-amber-100,
+.theme-high-contrast .bg-green-50,
+.theme-high-contrast .bg-green-100 {
+  background: var(--card-bg) !important;
+  color: var(--text) !important;
+}
+.theme-high-contrast .text-slate-700,
+.theme-high-contrast .text-slate-800,
+.theme-high-contrast .text-slate-900 {
+  color: var(--text) !important;
+}
+.theme-high-contrast ::placeholder { color: var(--color-placeholder) !important; }
+
+
+
 /* ------------------------
    Body
 ------------------------ */

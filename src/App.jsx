@@ -7,6 +7,7 @@ import ReceiveView from "./views/ReceiveView";
 import PayServicesView from "./views/PayServicesView";
 import AccountsView from "./views/AccountsView";
 import CardsView from "./views/CardsView";
+import SignupView from "./views/SignupView";
 
 const App = () => {
   const [currentView, setCurrentView] = useState("login");
@@ -38,7 +39,6 @@ const App = () => {
     if (savedMode) setSimpleMode(JSON.parse(savedMode));
   }, []);
 
-  // Al terminar el Wizard
   const handleFinishWizard = (finalSettings) => {
     setUserSettings(finalSettings);
     localStorage.setItem("userSettings", JSON.stringify(finalSettings));
@@ -46,13 +46,9 @@ const App = () => {
     setCurrentView("home");
   };
 
-  // Al iniciar sesión
   const handleLoginSuccess = () => {
-    if (hasCompletedWizard) {
-      setCurrentView("home");
-    } else {
-      setCurrentView("wizard");
-    }
+    if (hasCompletedWizard) setCurrentView("home");
+    else setCurrentView("wizard");
   };
 
   return (
@@ -63,6 +59,20 @@ const App = () => {
           onLoginSuccess={handleLoginSuccess}
           onShowQuestionnaire={() => setCurrentView("wizard")}
           hasSeenQuestionnaire={hasCompletedWizard}
+          // 👇 NUEVO: botón "Crear cuenta"
+          onGoToSignup={() => setCurrentView("signup")}
+        />
+      )}
+
+      {/* 👇 NUEVO: caso de registro */}
+      {currentView === "signup" && (
+        <SignupView
+          userSettings={userSettings}
+          onBackToLogin={() => setCurrentView("login")}
+          onSignupSuccess={() => {
+            // Puedes llevar a wizard o directo al home
+            setCurrentView("wizard"); // o: setCurrentView("home")
+          }}
         />
       )}
 

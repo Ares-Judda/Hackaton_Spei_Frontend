@@ -65,9 +65,13 @@ const WizardView = ({ onFinish }) => {
 
   const theme = userSettings.theme;
   const isDark = theme === "dark";
-  const bgColor = isDark ? "#0f172a" : "#f3f4f6";
-  const textColor = isDark ? "#e2e8f0" : "#1e293b";
-  const borderColor = isDark ? "#334155" : "#d1d5db";
+  const isHighContrast = theme === "high-contrast";
+  const bgColor = isHighContrast ? "#0f172a" : isDark ? "#0f172a" : "#f3f4f6";
+  const cardBg = isHighContrast ? "#0a0a0a" : isDark ? "#252423" : "#0f172a";
+  const textColor = isHighContrast ? "#ffffff" : isDark ? "#e2e8f0" : "#1e293b";
+  const borderColor = isHighContrast ? "#19e6ff" : isDark ? "#334155" : "#d1d5db";
+  const accentColor = isHighContrast ? "#19e6ff" : "#0078D4";
+
 
   // helper para accesibilidad en botones (enter / space)
   const handleKeyActivate = (e, fn) => {
@@ -479,7 +483,7 @@ const WizardView = ({ onFinish }) => {
             </div>
 
             <div style={{ display: "flex", gap: 10, marginTop: "8px" }} role="group" aria-label="Selector de tema">
-              {["light", "dark"].map((t) => {
+              {["light", "dark", "high-contrast"].map((t) => {
                 const active = userSettings.theme === t;
                 return (
                   <div
@@ -488,23 +492,47 @@ const WizardView = ({ onFinish }) => {
                     tabIndex={0}
                     aria-pressed={active}
                     onClick={() => updateTheme(t)}
-                    onKeyDown={(e) => handleKeyActivate(e, () => updateTheme(t))}
-                    onMouseEnter={() => isVoiceActive && speakText(t === "light" ? "Claro" : "Oscuro")}
-                    onFocus={() => isVoiceActive && speakText(t === "light" ? "Claro" : "Oscuro")}
+                    onMouseEnter={() =>
+                      isVoiceActive &&
+                      speakText(
+                        t === "light"
+                          ? "Claro"
+                          : t === "dark"
+                            ? "Oscuro"
+                            : "Alto contraste"
+                      )
+                    }
                     style={{
                       flex: 1,
                       padding: "14px 18px",
                       borderRadius: "10px",
-                      border: active ? `2px solid ${accentColor}` : `1px solid ${borderColor}`,
-                      backgroundColor: t === "light" ? "#ffffff" : "#0b1220",
-                      color: t === "light" ? "#111827" : "#f9fafb",
+                      border:
+                        userSettings.theme === t
+                          ? `2px solid ${accentColor}`
+                          : `1px solid ${borderColor}`,
+                      backgroundColor:
+                        t === "light"
+                          ? "#fff"
+                          : t === "dark"
+                            ? "#1e293b"
+                            : "#000", // alto contraste
+                      color:
+                        t === "light"
+                          ? "#333"
+                          : t === "dark"
+                            ? "#f9fafb"
+                            : "#fff", // alto contraste
                       textAlign: "center",
                       fontWeight: 700,
                       cursor: "pointer",
                       ...fontSizeStyle,
                     }}
                   >
-                    {t === "light" ? "Claro" : "Oscuro"}
+                    {t === "light"
+                      ? "Claro"
+                      : t === "dark"
+                        ? "Oscuro"
+                        : "Alto Contraste"}
                   </div>
                 );
               })}
