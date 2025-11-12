@@ -29,10 +29,12 @@ const WizardView = ({ onFinish }) => {
   // 🎨 Colores iguales al login
   const theme = userSettings?.theme;
   const isDark = theme === "dark";
-  const bgColor = isDark ? "#0f172a" : "#f3f4f6";
-  const textColor = isDark ? "#e2e8f0" : "#1e293b";
-  const borderColor = isDark ? "#334155" : "#d1d5db";
-  const accentColor = "#0078D4";
+  const isHighContrast = theme === "high-contrast";
+  const bgColor = isHighContrast ? "#0f172a" : isDark ? "#0f172a" : "#f3f4f6";
+  const cardBg = isHighContrast ? "#0a0a0a" : isDark ? "#252423" : "#0f172a";
+  const textColor = isHighContrast ? "#ffffff" : isDark ? "#e2e8f0" : "#1e293b";
+  const borderColor = isHighContrast ? "#19e6ff" : isDark ? "#334155" : "#d1d5db";
+  const accentColor = isHighContrast ? "#19e6ff" : "#0078D4";
 
   return (
     <AppWrapper userSettings={userSettings}>
@@ -103,8 +105,8 @@ const WizardView = ({ onFinish }) => {
                         backgroundColor: active
                           ? accentColor
                           : isDark
-                          ? "#1e293b"
-                          : "#fff",
+                            ? "#1e293b"
+                            : "#fff",
                         color: active ? "#fff" : textColor,
                         fontWeight: 600,
                         cursor: "pointer",
@@ -181,8 +183,8 @@ const WizardView = ({ onFinish }) => {
                           backgroundColor: active
                             ? accentColor
                             : isDark
-                            ? "#1e293b"
-                            : "#fff",
+                              ? "#1e293b"
+                              : "#fff",
                           color: active ? "#fff" : textColor,
                           fontWeight: 600,
                           cursor: "pointer",
@@ -218,8 +220,8 @@ const WizardView = ({ onFinish }) => {
                         backgroundColor: active
                           ? accentColor
                           : isDark
-                          ? "#1e293b"
-                          : "#fff",
+                            ? "#1e293b"
+                            : "#fff",
                         color: active ? "#fff" : textColor,
                         fontWeight: 600,
                         cursor: "pointer",
@@ -282,12 +284,19 @@ const WizardView = ({ onFinish }) => {
             <section>
               <label style={{ fontWeight: 600 }}>Selecciona tema</label>
               <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
-                {["light", "dark"].map((t) => (
+                {["light", "dark", "high-contrast"].map((t) => (
                   <div
                     key={t}
                     onClick={() => updateTheme(t)}
                     onMouseEnter={() =>
-                      isVoiceActive && speakText(t === "light" ? "Claro" : "Oscuro")
+                      isVoiceActive &&
+                      speakText(
+                        t === "light"
+                          ? "Claro"
+                          : t === "dark"
+                            ? "Oscuro"
+                            : "Alto contraste"
+                      )
                     }
                     style={{
                       flex: 1,
@@ -298,17 +307,32 @@ const WizardView = ({ onFinish }) => {
                         userSettings.theme === t
                           ? `2px solid ${accentColor}`
                           : `1px solid ${borderColor}`,
-                      backgroundColor: t === "light" ? "#fff" : "#1e293b",
-                      color: t === "light" ? "#333" : "#f9fafb",
+                      backgroundColor:
+                        t === "light"
+                          ? "#fff"
+                          : t === "dark"
+                            ? "#1e293b"
+                            : "#000", // alto contraste
+                      color:
+                        t === "light"
+                          ? "#333"
+                          : t === "dark"
+                            ? "#f9fafb"
+                            : "#fff", // alto contraste
                       textAlign: "center",
                       fontWeight: 600,
                     }}
                   >
-                    {t === "light" ? "Claro" : "Oscuro"}
+                    {t === "light"
+                      ? "Claro"
+                      : t === "dark"
+                        ? "Oscuro"
+                        : "Alto Contraste"}
                   </div>
                 ))}
               </div>
             </section>
+
 
             {/* ✅ Botón Finalizar */}
             <section style={{ textAlign: "center", marginTop: "20px" }}>

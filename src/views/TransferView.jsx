@@ -15,17 +15,22 @@ export default function TransferView({ userSettings, onBack }) {
     new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
 
   // ====== Estilos consistentes con HomeView (usa userSettings) ======
-  const isDark = userSettings?.theme === "dark";
-  const accentColor = "#0078D4";
-  const buttonHover = "#005EA6";
-  const bgColor = isDark ? "#0f172a" : "#f9fafb";
-  const textColor = isDark ? "#e2e8f0" : "#1e293b";
-  const cardColor = isDark ? "#111827" : "#ffffff";
-  const borderColor = isDark ? "#293548" : "#d1d5db";
-  const subtleText = isDark ? "#94a3b8" : "#6b7280";
-  const inputBg = isDark ? "#0b1220" : "#ffffff";
+  const theme = userSettings?.theme;
+  const isDark = theme === "dark";
+  const isHighContrast = theme === "high-contrast";
+
+  const accentColor = isHighContrast ? "#19e6ff" : "#0078D4";
+  const buttonHover = isHighContrast ? "#19e6ff" : "#005EA6";
+  const bgColor = isHighContrast ? "#0f172a" : isDark ? "#0f172a" : "#f9fafb";
+  const textColor = isHighContrast ? "#ffffff" : isDark ? "#e2e8f0" : "#1e293b";
+  const cardColor = isHighContrast ? "#0a0a0a" : isDark ? "#111827" : "#ffffff";
+  const inputBg = isHighContrast ? "#111111" : isDark ? "#0b1220" : "#ffffff";
+  const borderColor = isHighContrast ? "#19e6ff" : isDark ? "#293548" : "#d1d5db";
+  const subtleText = isHighContrast ? "#cccccc" : isDark ? "#94a3b8" : "#6b7280";
 
   const fontSizeBase = userSettings?.fontSize || "0.95rem";
+  const fontFamily = userSettings?.font || "system-ui, -apple-system, Segoe UI, Roboto, Arial";
+
 
   const container = {
     display: "flex",
@@ -115,13 +120,13 @@ export default function TransferView({ userSettings, onBack }) {
     fontSize: "0.95rem",
     border:
       type === "success" ? "1px solid #86efac" :
-      type === "error"   ? "1px solid #fca5a5" :
-      type === "warn"    ? "1px solid #fde68a" : `1px solid ${borderColor}`,
+        type === "error" ? "1px solid #fca5a5" :
+          type === "warn" ? "1px solid #fde68a" : `1px solid ${borderColor}`,
     background:
       type === "success" ? (isDark ? "#052e1b" : "#f0fdf4") :
-      type === "error"   ? (isDark ? "#3a0d0d" : "#fef2f2") :
-      type === "warn"    ? (isDark ? "#3b2e05" : "#fffbeb") :
-                           (isDark ? "#0b1220" : "#eff6ff"),
+        type === "error" ? (isDark ? "#3a0d0d" : "#fef2f2") :
+          type === "warn" ? (isDark ? "#3b2e05" : "#fffbeb") :
+            (isDark ? "#0b1220" : "#eff6ff"),
     color: textColor,
   });
 
@@ -307,7 +312,7 @@ export default function TransferView({ userSettings, onBack }) {
                 style={{
                   color:
                     risk.level === "alto" ? "#f87171" :
-                    risk.level === "medio" ? "#eab308" : "#22c55e",
+                      risk.level === "medio" ? "#eab308" : "#22c55e",
                 }}
               >
                 {risk.level.toUpperCase()}

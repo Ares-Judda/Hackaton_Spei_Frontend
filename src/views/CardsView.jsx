@@ -86,19 +86,23 @@ export default function CardsView({ userSettings, onBack }) {
   });
 
   // ===== THEME (coherente con Home/Transfer/Accounts/Receive/Pay) =====
-  const isDark = userSettings?.theme === "dark";
-  const accentColor = "#0078D4";
-  const buttonHover = "#005EA6";
-  const bgColor = isDark ? "#0f172a" : "#f9fafb";
-  const textColor = isDark ? "#e2e8f0" : "#1e293b";
-  const cardColor = isDark ? "#111827" : "#ffffff";
-  const inputBg = isDark ? "#0b1220" : "#ffffff";
-  const borderColor = isDark ? "#293548" : "#d1d5db";
-  const subtleText = isDark ? "#94a3b8" : "#6b7280";
-  const danger = "#b91c1c";
+  const theme = userSettings?.theme;
+  const isDark = theme === "dark";
+  const isHighContrast = theme === "high-contrast";
+
+  const accentColor = isHighContrast ? "#19e6ff" : "#0078D4";
+  const buttonHover = isHighContrast ? "#19e6ff" : "#005EA6";
+  const bgColor = isHighContrast ? "#0f172a" : isDark ? "#0f172a" : "#f9fafb";
+  const textColor = isHighContrast ? "#ffffff" : isDark ? "#e2e8f0" : "#1e293b";
+  const cardColor = isHighContrast ? "#0a0a0a" : isDark ? "#111827" : "#ffffff";
+  const inputBg = isHighContrast ? "#111111" : isDark ? "#0b1220" : "#ffffff";
+  const borderColor = isHighContrast ? "#19e6ff" : isDark ? "#293548" : "#d1d5db";
+  const subtleText = isHighContrast ? "#cccccc" : isDark ? "#94a3b8" : "#6b7280";
+  const danger = isHighContrast ? "#ff5c5c" : "#b91c1c";
+
   const fontSizeBase = userSettings?.fontSize || "0.95rem";
-  const fontFamily =
-    userSettings?.font || "system-ui, -apple-system, Segoe UI, Roboto, Arial";
+  const fontFamily = userSettings?.font || "system-ui, -apple-system, Segoe UI, Roboto, Arial";
+
 
   // ===== Estilos =====
   const container = {
@@ -125,7 +129,8 @@ export default function CardsView({ userSettings, onBack }) {
     padding: 16,
     boxShadow: isDark ? "0 4px 10px rgba(0,0,0,0.25)" : "0 4px 10px rgba(0,0,0,0.08)",
   };
-  const h1 = { fontSize: "1.4rem", fontWeight: 700, margin: 0 };
+  const h1 = { fontSize: "1.4rem", fontWeight: 700, margin: 0, color: accentColor };
+
   const label = { fontSize: fontSizeBase, fontWeight: 700, color: textColor };
   const small = { fontSize: "0.85rem", color: subtleText };
   const input = {
@@ -177,24 +182,21 @@ export default function CardsView({ userSettings, onBack }) {
     fontSize: "0.95rem",
     border:
       type === "success"
-        ? "1px solid #86efac"
+        ? (isHighContrast ? "1px solid #22FFB2" : "1px solid #86efac")
         : type === "error"
-        ? "1px solid #fca5a5"
-        : `1px solid ${borderColor}`,
+          ? (isHighContrast ? "1px solid #FF5C5C" : "1px solid #fca5a5")
+          : `1px solid ${borderColor}`,
     background:
-      type === "success"
-        ? isDark
-          ? "#052e1b"
-          : "#f0fdf4"
-        : type === "error"
-        ? isDark
-          ? "#3a0d0d"
-          : "#fef2f2"
-        : isDark
-        ? "#0b1220"
-        : "#eff6ff",
+      isHighContrast
+        ? cardColor
+        : type === "success"
+          ? (isDark ? "#052e1b" : "#f0fdf4")
+          : type === "error"
+            ? (isDark ? "#3a0d0d" : "#fef2f2")
+            : (isDark ? "#0b1220" : "#eff6ff"),
     color: textColor,
   });
+
 
   // Hovers/press
   const onHoverIn = (e) => (e.currentTarget.style.backgroundColor = buttonHover);
@@ -379,15 +381,13 @@ export default function CardsView({ userSettings, onBack }) {
                     display: "grid",
                     gap: 8,
                     background:
-                      c.brand === "VISA"
-                        ? isDark
-                          ? "#0b1220"
-                          : "#f8fbff"
-                        : c.brand === "Mastercard"
-                        ? isDark
-                          ? "#1b1410"
-                          : "#fff8f2"
-                        : cardColor,
+                      isHighContrast
+                        ? cardColor
+                        : c.brand === "VISA"
+                          ? (isDark ? "#0b1220" : "#f8fbff")
+                          : c.brand === "Mastercard"
+                            ? (isDark ? "#1b1410" : "#fff8f2")
+                            : cardColor,
                     color: textColor,
                   }}
                 >
@@ -460,7 +460,9 @@ export default function CardsView({ userSettings, onBack }) {
                     padding: 12,
                     display: "grid",
                     gap: 8,
-                    background: isDark ? "#121528" : "#f9f9ff",
+                    /* en el map de otherCards, en el style del contenedor */
+                    background: isHighContrast ? cardColor : isDark ? "#121528" : "#f9f9ff",
+
                     color: textColor,
                   }}
                 >
@@ -806,9 +808,13 @@ export default function CardsView({ userSettings, onBack }) {
                       <div style={{ fontSize: "0.95rem", fontWeight: 700 }}>{m.desc}</div>
                       <div style={small}>{new Date(m.date).toLocaleDateString("es-MX")}</div>
                     </div>
-                    <div style={{ fontWeight: 700, color: m.amount >= 0 ? "#166534" : "#b91c1c" }}>
-                      {m.amount >= 0 ? "+" : "-"}
-                      {toMXN(Math.abs(m.amount))}
+                    <div style={{
+                      fontWeight: 700,
+                      color: m.amount >= 0
+                        ? (isHighContrast ? "#22FFB2" : "#166534")
+                        : (isHighContrast ? "#FF5C5C" : "#b91c1c")
+                    }}>
+                      {m.amount >= 0 ? "+" : "-"}{toMXN(Math.abs(m.amount))}
                     </div>
                   </div>
                 ))}

@@ -15,9 +15,22 @@ const AppWrapper = ({ children, userSettings }) => {
 
   // 🎨 Colores coherentes y accesibles
   const isDark = theme === "dark";
-  const backgroundColor = isDark ? "#0f172a" : "#f3f4f6";
-  const textColor = isDark ? "#e2e8f0" : "#1e293b";
-  const accentColor = "#0078D4";
+  const isHighContrast = theme === "high-contrast";
+
+  const backgroundColor = isHighContrast
+    ? "#0f172a"   // igual que el fondo oscuro
+    : isDark
+      ? "#0f172a"
+      : "#f3f4f6";
+
+  const textColor = isHighContrast
+    ? "#ffffff"
+    : isDark
+      ? "#e2e8f0"
+      : "#1e293b";
+
+  const accentColor = isHighContrast ? "#19e6ff" : "#0078D4";
+
 
   return (
     <div

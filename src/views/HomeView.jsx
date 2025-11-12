@@ -14,18 +14,26 @@ import {
   FaExchangeAlt,
 } from "react-icons/fa";
 
-const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccouts, goToCards  }) => {
-  
+const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccouts, goToCards }) => {
+
   const [simpleMode, setSimpleMode] = useState(false);
 
-  const isDark = userSettings.theme === "dark";
-  const accentColor = "#0078D4";
-  const bgColor = isDark ? "#0f172a" : "#f9fafb";
-  const textColor = isDark ? "#f1f5f9" : "#1e293b";
-  const buttonBg = accentColor;
-  const buttonHover = "#005EA6";
-    const fontSize = userSettings.fontSize || "16px";
-  const fontFamily = userSettings.font || "Segoe UI";
+  const theme = userSettings?.theme;
+  const isDark = theme === "dark";
+  const isHighContrast = theme === "high-contrast";
+
+  const accentColor = isHighContrast ? "#19e6ff" : "#0078D4";
+  const bgColor = isHighContrast ? "#0f172a" : isDark ? "#0f172a" : "#f9fafb";
+  const textColor = isHighContrast ? "#ffffff" : isDark ? "#f1f5f9" : "#1e293b";
+  const buttonBg = isHighContrast ? "#0a0a0a" : accentColor;
+  const buttonHover = isHighContrast ? "#19e6ff" : "#005EA6";
+  const fontSize = userSettings?.fontSize || "16px";
+  const fontFamily = userSettings?.font || "Segoe UI";
+
+  const isHC = isHighContrast;                   // alias corto
+  const hcAccent = "#19e6ff";
+
+
 
   const userName = "Juan Pérez";
   const balance = "12,345.67";
@@ -40,7 +48,7 @@ const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccout
     {
       icon: <FaArrowUp />,
       label: "Transferir",
-      onClick: () => goToTransfer() ,
+      onClick: () => goToTransfer(),
     },
     {
       icon: <FaWallet />,
@@ -52,8 +60,8 @@ const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccout
       label: "Pago de servicios",
       onClick: () => goToPay(),
     },
-    
-    
+
+
     {
       icon: <FaCreditCard />,
       label: "Mis Tarjetas",
@@ -69,7 +77,7 @@ const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccout
       label: "Ajustes",
       onClick: () => alert("Configurar cuenta"),
     },
-    
+
   ];
 
   const simpleActions = [
@@ -144,15 +152,19 @@ const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccout
         </p>
 
         {/* 💰 Tarjeta de saldo accesible */}
+        {/* 💰 Tarjeta de saldo accesible */}
         <div
           style={{
-            background: isDark
-              ? "linear-gradient(135deg, #1e3a8a, #3b82f6)"
-              : "linear-gradient(135deg, #0078D4, #60a5fa)",
-            borderRadius: "18px",
+            background: isHC
+              ? "#0a0a0a"                                           // sólido en HC
+              : isDark
+                ? "linear-gradient(135deg, #1e3a8a, #3b82f6)"       // gradiente dark
+                : "linear-gradient(135deg, #0078D4, #60a5fa)",      // gradiente light
+            border: isHC ? `2px solid ${hcAccent}` : "1px solid rgba(0,0,0,0.25)",
+            borderRadius: 18,
             padding: "24px 28px",
             color: "#fff",
-            boxShadow: "0 6px 25px rgba(0,0,0,0.25)",
+            boxShadow: isHC ? "none" : "0 6px 25px rgba(0,0,0,0.25)",
             textAlign: "center",
             transition: "transform 0.3s ease",
           }}
@@ -160,9 +172,10 @@ const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccout
           <p
             style={{
               fontSize,
-              opacity: 0.9,
-              marginBottom: "6px",
-              fontWeight: "500",
+              opacity: isHC ? 1 : 0.9,                // en HC evita bajar contraste
+              marginBottom: 6,
+              fontWeight: 500,
+              color: isHC ? hcAccent : "#fff",        // etiqueta en cian HC
             }}
           >
             Saldo disponible
@@ -170,27 +183,29 @@ const HomeView = ({ userSettings, goToTransfer, goToReceive, goToPay, goToAccout
 
           <h2
             style={{
-              fontSize: `calc(${fontSize} * 2.2)`, // 👈 tamaño grande y destacado
-              fontWeight: "700",
-              margin: "0",
+              fontSize: `calc(${fontSize} * 2.2)`,
+              fontWeight: 700,
+              margin: 0,
               letterSpacing: "0.5px",
+              color: "#fff",
             }}
           >
             ${balance} MXN
           </h2>
 
-
           <p
             style={{
-              marginTop: "10px",
+              marginTop: 10,
               fontSize,
-              opacity: 0.85,
-              fontWeight: "500",
+              opacity: isHC ? 1 : 0.85,               // 100% en HC
+              fontWeight: 500,
+              color: isHC ? "#cccccc" : "#fff",
             }}
           >
             Cuenta terminada en {accountNumber.slice(-4)}
           </p>
         </div>
+
       </div>
 
       {/* 🧭 Botones de acción accesibles */}

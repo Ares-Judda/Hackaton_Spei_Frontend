@@ -4,7 +4,7 @@ import { FaCopy, FaQrcode, FaShareAlt, FaDownload } from "react-icons/fa";
 export default function ReceiveView({ userSettings, onBack }) {
   const accounts = [
     { id: "acc1", alias: "Cuenta Nómina", clabe: "002010012345678901", accountNumber: "1234 5678 9012 3456", bank: "Banco Inclusivo", name: "Juan Pérez" },
-    { id: "acc2", alias: "Ahorros",       clabe: "012180001234567891", accountNumber: "6543 2109 8765 4321", bank: "Banco Inclusivo", name: "Juan Pérez" },
+    { id: "acc2", alias: "Ahorros", clabe: "012180001234567891", accountNumber: "6543 2109 8765 4321", bank: "Banco Inclusivo", name: "Juan Pérez" },
   ];
 
   const [selectedId, setSelectedId] = useState(accounts[0].id);
@@ -13,22 +13,27 @@ export default function ReceiveView({ userSettings, onBack }) {
   const [toast, setToast] = useState(null);
   const dismissToast = () => setToast(null);
 
-  const [qrAmount, setQrAmount]   = useState("");
+  const [qrAmount, setQrAmount] = useState("");
   const [qrConcept, setQrConcept] = useState("");
-  const [qrUrl, setQrUrl]         = useState("");
+  const [qrUrl, setQrUrl] = useState("");
 
   // ===== Estilos coherentes con Home/Transfer/Accounts usando userSettings =====
-  const isDark = userSettings?.theme === "dark";
-  const accentColor = "#0078D4";
-  const buttonHover = "#005EA6";
-  const bgColor = isDark ? "#0f172a" : "#f9fafb";
-  const textColor = isDark ? "#e2e8f0" : "#1e293b";
-  const cardColor = isDark ? "#111827" : "#ffffff";
-  const inputBg = isDark ? "#0b1220" : "#ffffff";
-  const borderColor = isDark ? "#293548" : "#d1d5db";
-  const subtleText = isDark ? "#94a3b8" : "#6b7280";
+  const theme = userSettings?.theme;
+  const isDark = theme === "dark";
+  const isHighContrast = theme === "high-contrast";
+
+  const accentColor = isHighContrast ? "#19e6ff" : "#0078D4";
+  const buttonHover = isHighContrast ? "#19e6ff" : "#005EA6";
+  const bgColor = isHighContrast ? "#0f172a" : isDark ? "#0f172a" : "#f9fafb";
+  const textColor = isHighContrast ? "#ffffff" : isDark ? "#e2e8f0" : "#1e293b";
+  const cardColor = isHighContrast ? "#0a0a0a" : isDark ? "#111827" : "#ffffff";
+  const inputBg = isHighContrast ? "#111111" : isDark ? "#0b1220" : "#ffffff";
+  const borderColor = isHighContrast ? "#19e6ff" : isDark ? "#293548" : "#d1d5db";
+  const subtleText = isHighContrast ? "#cccccc" : isDark ? "#94a3b8" : "#6b7280";
+
   const fontSizeBase = userSettings?.fontSize || "0.95rem";
   const fontFamily = userSettings?.font || "system-ui, -apple-system, Segoe UI, Roboto, Arial";
+
 
   const container = {
     display: "flex",
@@ -139,7 +144,7 @@ Banco: ${selected.bank}`;
       try {
         await navigator.share({ title: "Datos para transferencia", text });
         setToast({ type: "success", msg: "Compartido" }); setTimeout(dismissToast, 1500);
-      } catch {}
+      } catch { }
     } else {
       copyToClipboard(text, "Datos de transferencia");
     }
@@ -195,7 +200,7 @@ Banco: ${selected.bank}`;
       } else {
         await navigator.share({ title: "QR de cobro", text: qrUrl });
       }
-    } catch {}
+    } catch { }
   };
 
   // ===== Render =====
