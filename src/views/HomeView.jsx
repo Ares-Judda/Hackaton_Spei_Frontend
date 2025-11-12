@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import AppWrapper from "../components/AppWrapper";
-import AccountCard from "../components/AcountCard";
 import {
   FaArrowDown,
   FaArrowUp,
@@ -19,30 +17,80 @@ const HomeView = ({ userSettings }) => {
   const isDark = userSettings.theme === "dark";
   const accentColor = "#0078D4";
   const bgColor = isDark ? "#0f172a" : "#f9fafb";
-  const textColor = isDark ? "#e2e8f0" : "#1e293b";
+  const textColor = isDark ? "#f1f5f9" : "#1e293b";
   const buttonBg = accentColor;
   const buttonHover = "#005EA6";
+  const fontSize = userSettings.fontSize || "16px";
+  const fontFamily = userSettings.font || "Segoe UI";
 
   const userName = "Juan Pérez";
   const balance = "12,345.67";
   const accountNumber = "1234 5678 9012 3456";
 
   const fullActions = [
-    { icon: <FaArrowDown />, label: "Recibir", onClick: () => alert("Recibir dinero") },
-    { icon: <FaArrowUp />, label: "Transferir", onClick: () => alert("Transferir dinero") },
-    { icon: <FaCreditCard />, label: "Mis Tarjetas", onClick: () => alert("Ver tarjetas") },
-    { icon: <FaWallet />, label: "Cuentas", onClick: () => alert("Ver cuentas") },
-    { icon: <FaMoneyBillWave />, label: "Pagos", onClick: () => alert("Realizar pagos") },
-    { icon: <FaHistory />, label: "Historial", onClick: () => alert("Ver historial") },
-    { icon: <FaCog />, label: "Ajustes", onClick: () => alert("Configurar cuenta") },
-    { icon: <FaChartLine />, label: "Inversiones", onClick: () => alert("Ver inversiones") },
-    { icon: <FaExchangeAlt />, label: "Cambio de divisas", onClick: () => alert("Cambio de divisas") },
+    {
+      icon: <FaArrowDown />,
+      label: "Recibir",
+      onClick: () => alert("Recibir dinero"),
+    },
+    {
+      icon: <FaArrowUp />,
+      label: "Transferir",
+      onClick: () => alert("Transferir dinero"),
+    },
+    {
+      icon: <FaCreditCard />,
+      label: "Mis Tarjetas",
+      onClick: () => alert("Ver tarjetas"),
+    },
+    {
+      icon: <FaWallet />,
+      label: "Cuentas",
+      onClick: () => alert("Ver cuentas"),
+    },
+    {
+      icon: <FaMoneyBillWave />,
+      label: "Pagos",
+      onClick: () => alert("Realizar pagos"),
+    },
+    {
+      icon: <FaHistory />,
+      label: "Historial",
+      onClick: () => alert("Ver historial"),
+    },
+    {
+      icon: <FaCog />,
+      label: "Ajustes",
+      onClick: () => alert("Configurar cuenta"),
+    },
+    {
+      icon: <FaChartLine />,
+      label: "Inversiones",
+      onClick: () => alert("Ver inversiones"),
+    },
+    {
+      icon: <FaExchangeAlt />,
+      label: "Cambio de divisas",
+      onClick: () => alert("Cambio de divisas"),
+    },
   ];
 
   const simpleActions = [
-    { icon: <FaArrowDown />, label: "Recibir", onClick: () => alert("Recibir dinero") },
-    { icon: <FaArrowUp />, label: "Transferir", onClick: () => alert("Transferir dinero") },
-    { icon: <FaWallet />, label: "Saldo / Cuentas", onClick: () => alert("Ver saldo y cuentas") },
+    {
+      icon: <FaArrowDown />,
+      label: "Recibir",
+      onClick: () => alert("Recibir dinero"),
+    },
+    {
+      icon: <FaArrowUp />,
+      label: "Transferir",
+      onClick: () => alert("Transferir dinero"),
+    },
+    {
+      icon: <FaWallet />,
+      label: "Saldo / Cuentas",
+      onClick: () => alert("Ver saldo y cuentas"),
+    },
   ];
 
   const actions = simpleMode ? simpleActions : fullActions;
@@ -52,34 +100,48 @@ const HomeView = ({ userSettings }) => {
       style={{
         backgroundColor: bgColor,
         color: textColor,
-        width: "100%",
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        padding: "30px 20px",
-        transition: "background-color 0.3s ease, color 0.3s ease",
+        justifyContent: "flex-start",
+        padding: "35px 20px",
+        transition: "all 0.3s ease",
+        fontFamily,
       }}
     >
-      {/* 🔹 Header profesional */}
+      {/* 👤 Encabezado con estilo limpio y jerarquía visual */}
       <div
         style={{
           textAlign: "center",
-          marginBottom: "25px",
+          marginBottom: "30px",
           width: "100%",
           maxWidth: "500px",
         }}
       >
-        <h2
+        <h1
           style={{
-            fontSize: "1.2rem",
-            opacity: 0.8,
-            marginBottom: "6px",
+            fontSize,
+            fontWeight: "700",
+            marginBottom: "8px",
+            lineHeight: "1.4",
           }}
         >
-          Hola, <span style={{ fontWeight: "600" }}>{userName}</span>
-        </h2>
+          Hola, <span style={{ color: accentColor }}>{userName}</span>
+        </h1>
 
+        <p
+          style={{
+            fontSize,
+            opacity: 0.75,
+            marginBottom: "20px",
+            fontWeight: "500",
+          }}
+        >
+          Te damos la bienvenida a tu banca digital
+        </p>
+
+        {/* 💰 Tarjeta de saldo accesible */}
         <div
           style={{
             background: isDark
@@ -88,34 +150,40 @@ const HomeView = ({ userSettings }) => {
             borderRadius: "18px",
             padding: "24px 28px",
             color: "#fff",
-            boxShadow: "0 6px 20px rgba(0,0,0,0.25)",
+            boxShadow: "0 6px 25px rgba(0,0,0,0.25)",
+            textAlign: "center",
             transition: "transform 0.3s ease",
           }}
         >
           <p
             style={{
-              fontSize: "0.9rem",
+              fontSize,
               opacity: 0.9,
               marginBottom: "6px",
+              fontWeight: "500",
             }}
           >
             Saldo disponible
           </p>
-          <h1
+
+          <h2
             style={{
-              fontSize: "2.2rem",
+              fontSize: `calc(${fontSize} * 2.2)`, // 👈 tamaño grande y destacado
               fontWeight: "700",
               margin: "0",
               letterSpacing: "0.5px",
             }}
           >
             ${balance} MXN
-          </h1>
+          </h2>
+
+
           <p
             style={{
               marginTop: "10px",
-              fontSize: "0.85rem",
-              opacity: 0.8,
+              fontSize,
+              opacity: 0.85,
+              fontWeight: "500",
             }}
           >
             Cuenta terminada en {accountNumber.slice(-4)}
@@ -123,7 +191,7 @@ const HomeView = ({ userSettings }) => {
         </div>
       </div>
 
-      {/* 🔹 Acciones */}
+      {/* 🧭 Botones de acción accesibles */}
       <div
         style={{
           display: "grid",
@@ -131,7 +199,7 @@ const HomeView = ({ userSettings }) => {
           gap: "18px",
           width: "100%",
           maxWidth: "500px",
-          marginTop: "25px",
+          marginTop: "10px",
         }}
       >
         {actions.map((action) => (
@@ -143,13 +211,13 @@ const HomeView = ({ userSettings }) => {
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              padding: "20px 10px",
+              padding: "18px 10px",
               borderRadius: "16px",
               border: "none",
               backgroundColor: buttonBg,
               color: "#fff",
               fontWeight: "600",
-              fontSize: userSettings.fontSize,
+              fontSize,
               cursor: "pointer",
               minHeight: "110px",
               gap: "10px",
@@ -161,13 +229,15 @@ const HomeView = ({ userSettings }) => {
             onMouseDown={(e) => (e.target.style.transform = "scale(0.97)")}
             onMouseUp={(e) => (e.target.style.transform = "scale(1)")}
           >
-            <span style={{ fontSize: "1.8em" }}>{action.icon}</span>
+            <span style={{ fontSize: `calc(${fontSize} * 1.8)` }}>
+              {action.icon}
+            </span>
             {action.label}
           </button>
         ))}
       </div>
 
-      {/* 🔹 Botón modo simple */}
+      {/* 🔄 Botón modo simple */}
       <button
         onClick={() => setSimpleMode(!simpleMode)}
         style={{
@@ -178,7 +248,7 @@ const HomeView = ({ userSettings }) => {
           backgroundColor: buttonBg,
           color: "#fff",
           fontWeight: "600",
-          fontSize: userSettings.fontSize,
+          fontSize,
           cursor: "pointer",
           transition: "0.3s",
           boxShadow: "0 3px 8px rgba(0,0,0,0.2)",
@@ -189,10 +259,10 @@ const HomeView = ({ userSettings }) => {
         {simpleMode ? "🔓 Modo Completo" : "🔒 Modo Simple"}
       </button>
 
-      {/* 🔹 Pie */}
+      {/* 📄 Pie accesible */}
       <p
         style={{
-          fontSize: "0.75rem",
+          fontSize: `calc(${fontSize} * 0.75)`,
           opacity: 0.6,
           marginTop: "25px",
           textAlign: "center",
