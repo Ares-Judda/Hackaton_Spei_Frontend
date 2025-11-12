@@ -10,21 +10,33 @@ const App = () => {
     theme: "light",
     font: "Arial",
     fontSize: "16px",
+    canReadSmallText: true,
+    usesScreenReader: false,
+    confidence: "medium",
+    literacy: "medium",
+    name: "",
+    ageRange: "18_30",
   });
 
-  // Estado temporal en memoria para saber si ya se contestó la encuesta durante esta sesión
-  const [hasSeenQuestionnaireThisSession, setHasSeenQuestionnaireThisSession] = useState(false);
+  // Saber si el usuario ya terminó la encuesta en esta sesión
+  const [hasCompletedWizard, setHasCompletedWizard] = useState(false);
 
   // Cuando finaliza el Wizard
   const handleFinishWizard = (finalSettings) => {
-    setUserSettings(finalSettings); // aplica cambios visuales
-    setShowWizard(false); // vuelve al login
-    setHasSeenQuestionnaireThisSession(true); // ya no mostrar popup hasta reiniciar app
+    setUserSettings(finalSettings); // aplicar cambios visuales
+    setShowWizard(false); // ocultar Wizard
+    setShowHome(true); // mostrar Home
+    setHasCompletedWizard(true); // marcar que ya terminó la encuesta
   };
 
   // Login exitoso
   const handleLoginSuccess = () => {
-    setShowHome(true); // pasa al Home
+    // Si ya completó la encuesta alguna vez en esta sesión, vamos directo al Home
+    if (hasCompletedWizard) {
+      setShowHome(true);
+    } else {
+      setShowWizard(true); // mostrar Wizard
+    }
   };
 
   return (
@@ -34,8 +46,6 @@ const App = () => {
           <LoginView
             userSettings={userSettings}
             onLoginSuccess={handleLoginSuccess}
-            onShowQuestionnaire={() => setShowWizard(true)}
-            hasSeenQuestionnaire={hasSeenQuestionnaireThisSession}
           />
         ) : (
           <WizardView onFinish={handleFinishWizard} />
