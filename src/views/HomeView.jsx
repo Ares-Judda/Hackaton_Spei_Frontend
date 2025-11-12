@@ -9,20 +9,7 @@ import {
   FaChartLine,
 } from "react-icons/fa";
 import logo from "../assets/logo.png";
-
-// 🔊 Función de lectura accesible
-function speakText(text, userSettings) {
-  if (typeof window === "undefined") return;
-  if (!("speechSynthesis" in window)) return;
-  // Leer si tiene voz activada o lector de pantalla
-  if (!userSettings?.needsVoiceAssistant && !userSettings?.usesScreenReader) return;
-  try {
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = "es-MX";
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utter);
-  } catch {}
-}
+import { speakText } from "../App";
 
 const HomeView = ({
   userSettings,
@@ -33,7 +20,11 @@ const HomeView = ({
   goToPay,
   goToAccouts,
   goToCards,
-  goToPreferences
+  goToPreferences,
+  voiceNavActive,
+  setVoiceNavActive,
+  setUserSettings,
+  goToLogin,
 }) => {
   const theme = userSettings?.theme;
   const isDark = theme === "dark";
@@ -60,10 +51,12 @@ const HomeView = ({
 
   // Leer información principal al cargar la vista
   useEffect(() => {
-    speakText(`Bienvenido, ${userName}. Tu saldo disponible es ${balance} pesos.`, userSettings);
+    speakText(
+      `Bienvenido, ${userName}. Tu saldo disponible es ${balance} pesos.`,
+      userSettings
+    );
   }, [userName, balance, userSettings]);
 
-  // Definición de botones
   const fullActions = [
     {
       icon: <FaArrowDown />,
@@ -85,8 +78,6 @@ const HomeView = ({
       label: "Pagar servicios",
       onClick: () => goToPay(),
     },
-
-
     {
       icon: <FaCreditCard />,
       label: "Mis Tarjetas",
@@ -102,7 +93,6 @@ const HomeView = ({
       label: "Preferencias",
       onClick: () => goToPreferences(),
     },
-
   ];
 
   const simpleActions = [
@@ -130,14 +120,33 @@ const HomeView = ({
 
   const actions = simpleMode ? simpleActions : fullActions;
 
-  // Cambiar modo simple/completo
   const toggleMode = () => {
     setSimpleMode((prev) => {
       const next = !prev;
       localStorage.setItem("simpleMode", JSON.stringify(next));
-      speakText(next ? "Modo simple activado" : "Modo completo activado", userSettings);
+      speakText(
+        next ? "Modo simple activado" : "Modo completo activado",
+        userSettings
+      );
       return next;
     });
+  };
+
+  const toggleVoice = () => {
+    const nextState = !(voiceNavActive && userSettings.usesScreenReader);
+
+    // Actualizar estados de voz y lector de pantalla
+    setVoiceNavActive(nextState);
+    setUserSettings((prev) => {
+      const updated = { ...prev, usesScreenReader: nextState };
+      localStorage.setItem("userSettings", JSON.stringify(updated));
+      return updated;
+    });
+
+    speakText(
+      nextState ? "Asistente de voz activado" : "Asistente de voz desactivado",
+      userSettings
+    );
   };
 
   return (
@@ -155,22 +164,62 @@ const HomeView = ({
       }}
     >
       {/* Encabezado */}
-      <div style={{ display: "flex", flexDirection: "column", marginBottom: "30px", width: "100%", maxWidth: "500px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "20px" }}>
-          <img src={logo} alt="Logo B-accesible" style={{ width: "70px", height: "70px", borderRadius: "50%", objectFit: "cover", backgroundColor: "white" }} />
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          marginBottom: "30px",
+          width: "100%",
+          maxWidth: "500px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "16px",
+            marginBottom: "20px",
+          }}
+        >
+          <img
+            src={logo}
+            alt="Logo B-accesible"
+            style={{
+              width: "70px",
+              height: "70px",
+              borderRadius: "50%",
+              objectFit: "cover",
+              backgroundColor: "white",
+            }}
+          />
           <div style={{ textAlign: "left" }}>
-            <h1 style={{ fontSize, fontWeight: "700", marginBottom: "8px", lineHeight: "1.4" }}>
+            <h1
+              style={{
+                fontSize,
+                fontWeight: "700",
+                marginBottom: "8px",
+                lineHeight: "1.4",
+              }}
+            >
               Hola, <span style={{ color: accentColor }}>{userName}</span>
             </h1>
-            <p style={{ fontSize, opacity: 0.75, fontWeight: "500" }}>Te damos la bienvenida a tu banca digital</p>
+            <p style={{ fontSize, opacity: 0.75, fontWeight: "500" }}>
+              Te damos la bienvenida a tu banca digital
+            </p>
           </div>
         </div>
 
         {/* Tarjeta de saldo */}
         <div
           style={{
-            background: isHighContrast ? "#0a0a0a" : isDark ? "linear-gradient(135deg, #1e3a8a, #3b82f6)" : "linear-gradient(135deg, #0078D4, #60a5fa)",
-            border: isHighContrast ? `2px solid #19e6ff` : "1px solid rgba(0,0,0,0.25)",
+            background: isHighContrast
+              ? "#0a0a0a"
+              : isDark
+              ? "linear-gradient(135deg, #1e3a8a, #3b82f6)"
+              : "linear-gradient(135deg, #0078D4, #60a5fa)",
+            border: isHighContrast
+              ? `2px solid #19e6ff`
+              : "1px solid rgba(0,0,0,0.25)",
             borderRadius: 18,
             padding: "24px 28px",
             color: "#fff",
@@ -179,20 +228,52 @@ const HomeView = ({
             width: "100%",
           }}
         >
-          <p style={{ fontSize, opacity: isHighContrast ? 1 : 0.9, marginBottom: 6, fontWeight: 500, color: isHighContrast ? "#19e6ff" : "#fff" }}>
+          <p
+            style={{
+              fontSize,
+              opacity: isHighContrast ? 1 : 0.9,
+              marginBottom: 6,
+              fontWeight: 500,
+              color: isHighContrast ? "#19e6ff" : "#fff",
+            }}
+          >
             Saldo disponible
           </p>
-          <h2 style={{ fontSize: `calc(${fontSize} * 2.2)`, fontWeight: 700, margin: 0, color: "#fff" }}>
+          <h2
+            style={{
+              fontSize: `calc(${fontSize} * 2.2)`,
+              fontWeight: 700,
+              margin: 0,
+              color: "#fff",
+            }}
+          >
             ${balance} MXN
           </h2>
-          <p style={{ marginTop: 10, fontSize, opacity: isHighContrast ? 1 : 0.85, fontWeight: 500, color: isHighContrast ? "#cccccc" : "#fff" }}>
+          <p
+            style={{
+              marginTop: 10,
+              fontSize,
+              opacity: isHighContrast ? 1 : 0.85,
+              fontWeight: 500,
+              color: isHighContrast ? "#cccccc" : "#fff",
+            }}
+          >
             Cuenta terminada en {accountNumber.slice(-4)}
           </p>
         </div>
       </div>
 
       {/* Botones de acción */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "18px", width: "100%", maxWidth: "500px", marginTop: "10px" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+          gap: "18px",
+          width: "100%",
+          maxWidth: "500px",
+          marginTop: "10px",
+        }}
+      >
         {actions.map((action) => (
           <button
             key={action.label}
@@ -216,34 +297,93 @@ const HomeView = ({
               gap: "10px",
             }}
           >
-            <span style={{ fontSize: `calc(${fontSize} * 1.8)` }}>{action.icon}</span>
+            <span style={{ fontSize: `calc(${fontSize} * 1.8)` }}>
+              {action.icon}
+            </span>
             {action.label}
           </button>
         ))}
       </div>
 
-      {/* Botón modo simple/completo */}
-      <button
-        onClick={toggleMode}
-        onFocus={() => speakText(simpleMode ? "Activar modo completo" : "Activar modo simple", userSettings)}
-        onMouseEnter={() => speakText(simpleMode ? "Activar modo completo" : "Activar modo simple", userSettings)}
+      {/* Botones modo simple + asistente de voz lado a lado */}
+      <div
         style={{
-          marginTop: "35px",
-          padding: "12px 22px",
-          borderRadius: "12px",
-          border: "none",
-          backgroundColor: buttonBg,
-          color: "#fff",
-          fontWeight: "600",
-          fontSize,
-          cursor: "pointer",
+          display: "flex",
+          gap: "15px",
+          marginTop: "25px",
+          flexWrap: "wrap",
+          justifyContent: "center",
         }}
       >
-        {simpleMode ? "🔓 Modo Completo" : "🔒 Modo Simple"}
-      </button>
+        {/* Botón Modo */}
+        <button
+          onClick={toggleMode}
+          onFocus={() =>
+            speakText(
+              simpleMode ? "Activar modo completo" : "Activar modo simple",
+              userSettings
+            )
+          }
+          onMouseEnter={() =>
+            speakText(
+              simpleMode ? "Activar modo completo" : "Activar modo simple",
+              userSettings
+            )
+          }
+          style={{
+            flex: 1,
+            minWidth: "180px",
+            padding: "12px 22px", // mismo padding vertical que el otro botón
+            borderRadius: "12px",
+            border: "none",
+            backgroundColor: buttonBg,
+            color: "#fff",
+            fontWeight: "600",
+            fontSize,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {simpleMode ? "🔓 Modo Completo" : "🔒 Modo Simple"}
+        </button>
+
+        {/* Botón Cerrar sesión */}
+        <button
+          onClick={() => {
+            goToLogin();
+            speakText("Regresando al inicio de sesión", userSettings);
+          }}
+          style={{
+            flex: 1, // igualar con el otro botón
+            minWidth: "180px", // igual que el botón de modo
+            padding: "12px 22px", // mismo padding vertical y horizontal
+            borderRadius: "12px",
+            border: "none",
+            backgroundColor: buttonBg,
+            color: "#fff",
+            fontWeight: "600",
+            fontSize,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          Cerrar Sesión
+        </button>
+      </div>
 
       {/* Pie de página */}
-      <p style={{ fontSize: `calc(${fontSize} * 0.75)`, opacity: 0.6, marginTop: "25px", textAlign: "center" }}>
+      <p
+        style={{
+          fontSize: `calc(${fontSize} * 0.75)`,
+          opacity: 0.6,
+          marginTop: "25px",
+          textAlign: "center",
+        }}
+      >
         © 2025 Banco Inclusivo — Interfaz accesible para todos
       </p>
     </div>

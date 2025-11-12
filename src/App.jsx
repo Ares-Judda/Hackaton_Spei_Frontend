@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import LoginView from "./views/LoginView";
 import WizardView from "./views/WizardView";
 import HomeView from "./views/HomeView";
@@ -10,6 +10,19 @@ import CardsView from "./views/CardsView";
 import SignupView from "./views/SignupView";
 import PreferencesView from "./views/PreferencesView";
 
+// 🔊 Función de lectura accesible con callback
+export function speakText(text, userSettings, callback) {
+  if (typeof window === "undefined") return;
+  if (!("speechSynthesis" in window)) return;
+  try {
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "es-MX";
+    utter.onend = () => callback && callback(text); // dispara callback cuando termina de hablar
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  } catch {}
+}
+
 const App = () => {
   const [currentView, setCurrentView] = useState("login");
 
@@ -19,27 +32,136 @@ const App = () => {
     fontSize: "16px",
     canReadSmallText: true,
     usesScreenReader: false,
+    needsVoiceAssistant: false,
     confidence: "medium",
     literacy: "medium",
-    needsVoiceAssistant: false,
     name: "",
     ageRange: "18_30",
   });
 
   const [hasCompletedWizard, setHasCompletedWizard] = useState(false);
-
-  // ===== Nuevo estado para modo simple =====
   const [simpleMode, setSimpleMode] = useState(false);
 
-  // 🔄 Cargar configuraciones y modo simple desde localStorage al iniciar
+  // ===== Estados para voz =====
+  const recognitionRef = useRef(null);
+  const [voiceNavActive, setVoiceNavActive] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+
+  // 🔄 Cargar configuraciones y modo simple
   useEffect(() => {
     const savedSettings = localStorage.getItem("userSettings");
     if (savedSettings) setUserSettings(JSON.parse(savedSettings));
 
     const savedMode = localStorage.getItem("simpleMode");
     if (savedMode) setSimpleMode(JSON.parse(savedMode));
+
+    setVoiceSupported(!!(window.SpeechRecognition || window.webkitSpeechRecognition));
   }, []);
 
+  // 🔊 Función principal de comandos de voz (modo directo)
+  function handleVoiceCommand(rawText) {
+    if (!rawText) return;
+    const text = rawText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    // Navegación directa por voz
+    if (text.includes("inicio") || text.includes("principal") || text.includes("home")) {
+      setCurrentView("home");
+      speakText("Navegando al inicio", userSettings);
+      return;
+    }
+    if (text.includes("saldo") || text.includes("mis saldos")) {
+      setCurrentView("accounts");
+      speakText("Consultando tus saldos", userSettings);
+      return;
+    }
+    if (text.includes("pagar") || text.includes("servicios")) {
+      setCurrentView("pay");
+      speakText("Pagar servicios", userSettings);
+      return;
+    }
+    if (text.includes("enviar") && text.includes("dinero")) {
+      setCurrentView("transfer");
+      speakText("Enviando dinero", userSettings);
+      return;
+    }
+    if (text.includes("recibir") && text.includes("dinero")) {
+      setCurrentView("receive");
+      speakText("Recibiendo dinero", userSettings);
+      return;
+    }
+    if (text.includes("tarjetas") || text.includes("mis tarjetas")) {
+      setCurrentView("cards");
+      speakText("Accediendo a tus tarjetas", userSettings);
+      return;
+    }
+    if (text.includes("preferencias")) {
+      setCurrentView("preferences");
+      speakText("Abriendo preferencias", userSettings);
+      return;
+    }
+    if (text.includes("modo simple")) {
+      setSimpleMode(true);
+      localStorage.setItem("simpleMode", true);
+      speakText("Modo simple activado", userSettings);
+      return;
+    }
+    if (text.includes("modo completo")) {
+      setSimpleMode(false);
+      localStorage.setItem("simpleMode", false);
+      speakText("Modo completo activado", userSettings);
+      return;
+    }
+    if (text.includes("ayuda")) {
+      speakText(
+        "Puedes decir: inicio, mis saldos, pagar servicios, enviar dinero, recibir dinero, mis tarjetas, preferencias, modo simple o modo completo.",
+        userSettings
+      );
+      return;
+    }
+  }
+
+  // 🔈 Inicializar reconocimiento de voz (modo directo)
+  useEffect(() => {
+    if (!voiceNavActive || !voiceSupported) return;
+
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+
+    const rec = new SR();
+    rec.lang = "es-MX";
+    rec.continuous = true;
+    rec.interimResults = false;
+
+    rec.onstart = () => console.log("Escuchando comandos de voz...");
+    rec.onend = () => {
+      if (voiceNavActive) rec.start(); // reinicia automáticamente
+    };
+    rec.onresult = (event) => {
+      const lastResult = event.results[event.results.length - 1];
+      if (!lastResult || !lastResult[0]) return;
+      const transcript = lastResult[0].transcript;
+      handleVoiceCommand(transcript);
+    };
+
+    rec.start();
+    recognitionRef.current = rec;
+
+    return () => rec.stop();
+  }, [voiceNavActive, voiceSupported]);
+
+  // ===== Función para lectura de pantalla + navegación automática =====
+  const handleScreenReaderSpeak = (text) => {
+    if (!userSettings?.usesScreenReader) return;
+    speakText(text, userSettings, (spokenText) => {
+      // navegación automática basada en lo que dice el lector
+      if (spokenText.toLowerCase().includes("consultar saldos")) setCurrentView("accounts");
+      if (spokenText.toLowerCase().includes("enviar dinero")) setCurrentView("transfer");
+      if (spokenText.toLowerCase().includes("recibir dinero")) setCurrentView("receive");
+      if (spokenText.toLowerCase().includes("pagar servicios")) setCurrentView("pay");
+    });
+  };
+
+  // ===== Funciones de flujo principal =====
   const handleFinishWizard = (finalSettings) => {
     setUserSettings(finalSettings);
     localStorage.setItem("userSettings", JSON.stringify(finalSettings));
@@ -60,20 +182,15 @@ const App = () => {
           onLoginSuccess={handleLoginSuccess}
           onShowQuestionnaire={() => setCurrentView("wizard")}
           hasSeenQuestionnaire={hasCompletedWizard}
-          // 👇 NUEVO: botón "Crear cuenta"
           onGoToSignup={() => setCurrentView("signup")}
         />
       )}
 
-      {/* 👇 NUEVO: caso de registro */}
       {currentView === "signup" && (
         <SignupView
           userSettings={userSettings}
           onBackToLogin={() => setCurrentView("login")}
-          onSignupSuccess={() => {
-            // Puedes llevar a wizard o directo al home
-            setCurrentView("wizard"); // o: setCurrentView("home")
-          }}
+          onSignupSuccess={() => setCurrentView("wizard")}
         />
       )}
 
@@ -88,14 +205,18 @@ const App = () => {
       {currentView === "home" && (
         <HomeView
           userSettings={userSettings}
-          simpleMode={simpleMode}          // 👈 prop
-          setSimpleMode={setSimpleMode}    // 👈 prop
+          simpleMode={simpleMode}
+          setSimpleMode={setSimpleMode}
           goToTransfer={() => setCurrentView("transfer")}
           goToReceive={() => setCurrentView("receive")}
           goToPay={() => setCurrentView("pay")}
           goToAccouts={() => setCurrentView("accounts")}
           goToCards={() => setCurrentView("cards")}
           goToPreferences={() => setCurrentView("preferences")}
+          goToLogin={() => setCurrentView("login")}
+          voiceNavActive={voiceNavActive}
+          setVoiceNavActive={setVoiceNavActive}
+          handleScreenReaderSpeak={handleScreenReaderSpeak}
         />
       )}
 
