@@ -65,37 +65,37 @@ const App = () => {
     // Navegación directa por voz
     if (text.includes("inicio") || text.includes("principal") || text.includes("home")) {
       setCurrentView("home");
-      speakText("Navegando al inicio", userSettings);
+      speakText("", userSettings);
       return;
     }
     if (text.includes("saldo") || text.includes("mis saldos")) {
       setCurrentView("accounts");
-      speakText("Consultando tus saldos", userSettings);
+      speakText("", userSettings);
       return;
     }
     if (text.includes("pagar") || text.includes("servicios")) {
       setCurrentView("pay");
-      speakText("Pagar servicios", userSettings);
+      speakText("", userSettings);
       return;
     }
     if (text.includes("enviar") && text.includes("dinero")) {
       setCurrentView("transfer");
-      speakText("Enviando dinero", userSettings);
+      speakText("", userSettings);
       return;
     }
     if (text.includes("recibir") && text.includes("dinero")) {
       setCurrentView("receive");
-      speakText("Recibiendo dinero", userSettings);
+      speakText("", userSettings);
       return;
     }
     if (text.includes("tarjetas") || text.includes("mis tarjetas")) {
       setCurrentView("cards");
-      speakText("Accediendo a tus tarjetas", userSettings);
+      speakText("", userSettings);
       return;
     }
     if (text.includes("preferencias")) {
       setCurrentView("preferences");
-      speakText("Abriendo preferencias", userSettings);
+      speakText("", userSettings);
       return;
     }
     if (text.includes("ayuda")) {
