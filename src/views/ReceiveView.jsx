@@ -1,5 +1,6 @@
-import React, { useMemo, useState, useEffect } from "react";
-import { FaCopy, FaQrcode, FaShareAlt, FaDownload } from "react-icons/fa";
+import React, { useMemo, useState, useEffect, useRef } from "react";
+import { FaCopy, FaQrcode, FaShareAlt, FaDownload, FaQuestionCircle, FaInfoCircle, FaExclamationTriangle, FaLightbulb } from "react-icons/fa";
+import { getAiNudge } from "../services/aiService";
 import logo from "../assets/logo.png";
 
 export default function ReceiveView({ userSettings, onBack }) {
@@ -35,6 +36,24 @@ export default function ReceiveView({ userSettings, onBack }) {
   const [qrConcept, setQrConcept] = useState("");
   const [qrUrl, setQrUrl] = useState("");
 
+  // ===== Estado para Nudging de IA =====
+  const [nudgeData, setNudgeData] = useState(null);
+  const [showNudge, setShowNudge] = useState(false);
+  const [showHelpMessage, setShowHelpMessage] = useState(false);
+  const [hasTriggeredNudge, setHasTriggeredNudge] = useState(false);
+  
+  // Usar useRef para valores que cambian frecuentemente
+  const interactionCountRef = useRef(0);
+  const timeOnScreenRef = useRef(0);
+  const validationErrorsRef = useRef(0);
+  const backNavigationsRef = useRef(0);
+  const sessionIdRef = useRef(`session_${Date.now()}`);
+  const lastRequestTimeRef = useRef(0);
+
+  // Estados para UI (solo para mostrar)
+  const [uiInteractionCount, setUiInteractionCount] = useState(0);
+  const [uiTimeOnScreen, setUiTimeOnScreen] = useState(0);
+
   // ===== Función de lectura en voz =====
   function speakText(text) {
     if (typeof window === "undefined") return;
@@ -47,6 +66,146 @@ export default function ReceiveView({ userSettings, onBack }) {
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utter);
   }
+
+  // ===== Función para consultar Nudging de IA =====
+  const consultarNudgingIA = async () => {
+    // Solo consultar si han pasado al menos 10 segundos desde la última petición
+    const now = Date.now();
+    if (now - lastRequestTimeRef.current < 10000) {
+      console.log("Esperando 10 segundos entre peticiones...");
+      return;
+    }
+
+    try {
+      const payload = {
+        user_id: "current_user",
+        session_id: sessionIdRef.current,
+        screen: "receive_money",
+        num_validation_errors: 100,
+        time_on_screen_seconds: 100,
+        num_back_navigations: backNavigationsRef.current,
+        steps_total: 3,
+        current_step: 1
+      };
+
+      console.log("Enviando payload a IA:", payload);
+      
+      const response = await getAiNudge(payload);
+      console.log("Respuesta completa de IA:", response);
+      const responseData = response.data;
+      setNudgeData(responseData);
+      lastRequestTimeRef.current = now;
+      
+      if (responseData && responseData.result && responseData.result.needs_help) {
+        console.log("IA detectó que necesita ayuda, mostrando nudge...");
+        
+        setShowNudge(true);
+        setShowHelpMessage(true);
+        setHasTriggeredNudge(true);
+        
+        // Leer el mensaje de ayuda
+        const mensajeAyuda = getNudgeMessage(
+          responseData.result.recommended_nudge_type,
+          responseData.result.reason
+        );
+        speakText(mensajeAyuda);
+        
+        // Ocultar automáticamente después de 8 segundos
+        setTimeout(() => {
+          setShowNudge(false);
+        }, 8000);
+
+        // Ocultar mensaje de ayuda después de 7 segundos
+        setTimeout(() => {
+          setShowHelpMessage(false);
+        }, 7000);
+      } else {
+        console.log("IA dice que no necesita ayuda", responseData?.result);
+      }
+    } catch (error) {
+      console.error("Error al consultar nudging de IA:", error);
+    }
+  };
+
+  // ===== Efectos para tracking de interacciones =====
+  useEffect(() => {
+    // Timer para tiempo en pantalla - SOLO UNA VEZ
+    const timer = setInterval(() => {
+      timeOnScreenRef.current += 1;
+      setUiTimeOnScreen(timeOnScreenRef.current); // Actualizar UI
+      
+      console.log(`Tiempo en pantalla: ${timeOnScreenRef.current} segundos, Interacciones: ${interactionCountRef.current}`);
+      
+      // Consultar IA cada 10 segundos
+      if (timeOnScreenRef.current % 10 === 0) {
+        console.log(`10 segundos completados, consultando IA...`);
+        consultarNudgingIA();
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [hasTriggeredNudge]); // SOLO hasTriggeredNudge como dependencia
+
+  // ===== Función para registrar interacciones =====
+  const registrarInteraccion = () => {
+    interactionCountRef.current += 1;
+    setUiInteractionCount(interactionCountRef.current); // Actualizar UI
+    console.log(`Interacción registrada: ${interactionCountRef.current}`);
+  };
+
+  // ===== Mapeo de tipos de nudge a mensajes =====
+  const getNudgeMessage = (nudgeType, reason) => {
+    const messages = {
+      assist: {
+        low_difficulty: "¿Necesitas ayuda para compartir tus datos? Puedo guiarte paso a paso.",
+        validation_errors: "Revisa que los datos estén correctos. Verifica la CLABE y número de cuenta.",
+        time_on_screen: "¿Te ayudo a encontrar lo que buscas? Puedes copiar datos o generar un QR.",
+        navigation_confusion: "Puedes copiar o compartir tus datos fácilmente. Selecciona una opción."
+      },
+      warning: {
+        low_difficulty: "Recuerda que puedes copiar cada dato individualmente o todos juntos.",
+        validation_errors: "Verifica la información antes de compartir. La CLABE debe tener 18 dígitos.",
+        time_on_screen: "Tómate tu tiempo, estamos aquí para ayudarte si lo necesitas.",
+        navigation_confusion: "Selecciona la cuenta que prefieras para recibir pagos."
+      },
+      info: {
+        low_difficulty: "Puedes generar un QR con monto específico o dejarlo en blanco.",
+        validation_errors: "Todos los campos son opcionales. Puedes personalizar el QR.",
+        time_on_screen: "Esta pantalla te ayuda a recibir pagos fácilmente. Comparte tus datos o el QR.",
+        navigation_confusion: "Usa los botones de copiar para compartir datos rápidamente."
+      }
+    };
+
+    return messages[nudgeType]?.[reason] || "¿Necesitas ayuda para recibir pagos? Estoy aquí para ayudarte.";
+  };
+
+  // ===== Obtener icono según tipo de ayuda =====
+  const getNudgeIcon = (nudgeType) => {
+    switch (nudgeType) {
+      case 'assist':
+        return <FaQuestionCircle />;
+      case 'warning':
+        return <FaExclamationTriangle />;
+      case 'info':
+        return <FaInfoCircle />;
+      default:
+        return <FaLightbulb />;
+    }
+  };
+
+  // ===== Obtener color según tipo de ayuda =====
+  const getNudgeColor = (nudgeType) => {
+    switch (nudgeType) {
+      case 'assist':
+        return '#0078D4'; // Azul
+      case 'warning':
+        return '#D83B01'; // Naranja
+      case 'info':
+        return '#107C10'; // Verde
+      default:
+        return accentColor;
+    }
+  };
 
   // ===== Estilos coherentes con Home/Transfer/Accounts usando userSettings =====
   const theme = userSettings?.theme;
@@ -158,6 +317,41 @@ export default function ReceiveView({ userSettings, onBack }) {
     color: textColor,
   });
 
+  // ===== Estilo para el mensaje de ayuda en la UI =====
+  const helpMessageBox = {
+    background: cardColor,
+    border: `2px solid ${nudgeData ? getNudgeColor(nudgeData.result.recommended_nudge_type) : accentColor}`,
+    borderRadius: 16,
+    padding: "16px",
+    boxShadow: "0 4px 15px rgba(0,0,0,0.15)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    animation: "slideInDown 0.4s ease-out",
+    position: "relative",
+  };
+
+  // ===== Estilo para el mensaje de nudge modal =====
+  const nudgeBox = {
+    position: "fixed",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    zIndex: 1000,
+    background: cardColor,
+    border: `2px solid ${accentColor}`,
+    borderRadius: 16,
+    padding: "20px 24px",
+    boxShadow: "0 8px 25px rgba(0,0,0,0.3)",
+    maxWidth: "380px",
+    textAlign: "center",
+    animation: "fadeInScale 0.3s ease-out",
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+    alignItems: "center",
+  };
+
   const chip = (active) => ({
     padding: "10px 12px",
     borderRadius: 14,
@@ -196,6 +390,7 @@ export default function ReceiveView({ userSettings, onBack }) {
       setToast({ type: "success", msg: `${label} copiado` });
       speakText(`${label} copiado`);
       setTimeout(dismissToast, 1800);
+      registrarInteraccion();
     } catch {
       setToast({ type: "error", msg: `No se pudo copiar ${label}` });
       speakText(`No se pudo copiar ${label}`);
@@ -218,6 +413,7 @@ Banco: ${selected.bank}`;
     } else {
       copyToClipboard(text, "Datos de transferencia");
     }
+    registrarInteraccion();
   };
 
   // ===== QR helpers =====
@@ -265,6 +461,7 @@ Banco: ${selected.bank}`;
       URL.revokeObjectURL(url);
       a.remove();
       speakText("QR descargado");
+      registrarInteraccion();
     } catch {
       setToast({ type: "error", msg: "No se pudo descargar el QR" });
       speakText("No se pudo descargar el QR");
@@ -290,6 +487,7 @@ Banco: ${selected.bank}`;
       } else {
         await navigator.share({ title: "QR de cobro", text: qrUrl });
       }
+      registrarInteraccion();
     } catch {}
   };
 
@@ -297,12 +495,16 @@ Banco: ${selected.bank}`;
   return (
     <div style={container}>
       <div style={shell}>
+        {/* Mensaje de Nudge de IA Modal */}
+        
         <div style={{ position: "relative", marginBottom: "25px" }}>
           {onBack && (
             <button
               onClick={() => {
                 onBack();
                 speakText("Volviendo atrás");
+                backNavigationsRef.current += 1;
+                registrarInteraccion();
               }}
               style={{
                 ...ghostBtn,
@@ -345,6 +547,105 @@ Banco: ${selected.bank}`;
 
         <h1 style={h1}>Recibir dinero</h1>
 
+        {/* Mensaje de ayuda de IA */}
+        {showHelpMessage && nudgeData && (
+          <div style={helpMessageBox}>
+            <div style={{ 
+              display: "flex", 
+              alignItems: "flex-start", 
+              gap: "12px"
+            }}>
+              <div style={{ 
+                color: getNudgeColor(nudgeData.result.recommended_nudge_type),
+                fontSize: "1.3rem",
+                marginTop: "2px"
+              }}>
+                {getNudgeIcon(nudgeData.result.recommended_nudge_type)}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ 
+                  display: "flex", 
+                  justifyContent: "space-between", 
+                  alignItems: "flex-start",
+                  marginBottom: "8px"
+                }}>
+                  <h3 style={{ 
+                    margin: 0, 
+                    fontSize: "1rem",
+                    fontWeight: 700,
+                    color: textColor
+                  }}>
+                    Sugerencia de ayuda
+                  </h3>
+                  <button
+                    onClick={() => setShowHelpMessage(false)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: subtleText,
+                      cursor: "pointer",
+                      fontSize: "0.9rem",
+                      padding: "4px"
+                    }}
+                    aria-label="Cerrar sugerencia"
+                  >
+                    ×
+                  </button>
+                </div>
+                <p style={{ 
+                  margin: 0, 
+                  fontSize: "0.95rem",
+                  lineHeight: "1.4",
+                  color: textColor
+                }}>
+                  {getNudgeMessage(
+                    nudgeData.result.recommended_nudge_type,
+                    nudgeData.result.reason
+                  )}
+                </p>
+                <div style={{ 
+                  display: "flex", 
+                  gap: "8px", 
+                  marginTop: "12px"
+                }}>
+                  <button
+                    onClick={() => {
+                      setShowHelpMessage(false);
+                      speakText("Sugerencia cerrada");
+                    }}
+                    style={{
+                      ...ghostBtn,
+                      padding: "6px 12px",
+                      fontSize: "0.85rem"
+                    }}
+                  >
+                    Entendido
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowNudge(true);
+                      setShowHelpMessage(false);
+                      speakText("Mostrando más opciones de ayuda");
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: getNudgeColor(nudgeData.result.recommended_nudge_type),
+                      cursor: "pointer",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      textDecoration: "underline",
+                      padding: "6px 12px"
+                    }}
+                  >
+                    Ver más ayuda
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div style={fieldCard}>
           <label style={label}>Cuenta a recibir</label>
           <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
@@ -354,6 +655,7 @@ Banco: ${selected.bank}`;
                 onClick={() => {
                   setSelectedId(acc.id);
                   speakText(`Seleccionaste la cuenta ${acc.alias}`);
+                  registrarInteraccion();
                 }}
                 style={chip(selectedId === acc.id)}
                 onMouseDown={onPressIn}
@@ -393,7 +695,10 @@ Banco: ${selected.bank}`;
                   {selected.clabe}
                 </div>
                 <button
-                  onClick={() => copyToClipboard(selected.clabe, "CLABE")}
+                  onClick={() => {
+                    copyToClipboard(selected.clabe, "CLABE");
+                    registrarInteraccion();
+                  }}
                   aria-label="Copiar CLABE"
                   style={{
                     border: "none",
@@ -416,9 +721,10 @@ Banco: ${selected.bank}`;
                   {selected.accountNumber}
                 </div>
                 <button
-                  onClick={() =>
-                    copyToClipboard(selected.accountNumber, "Número de cuenta")
-                  }
+                  onClick={() => {
+                    copyToClipboard(selected.accountNumber, "Número de cuenta");
+                    registrarInteraccion();
+                  }}
                   aria-label="Copiar número de cuenta"
                   style={{
                     border: "none",
@@ -436,12 +742,13 @@ Banco: ${selected.bank}`;
 
           <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
             <button
-              onClick={() =>
+              onClick={() => {
                 copyToClipboard(
                   `CLABE: ${selected.clabe}\nCuenta: ${selected.accountNumber}\nTitular: ${selected.name}\nBanco: ${selected.bank}`,
                   "Datos de transferencia"
-                )
-              }
+                );
+                registrarInteraccion();
+              }}
               style={ghostBtn}
               onMouseDown={onPressIn}
               onMouseUp={onPressOut}
@@ -556,14 +863,15 @@ Banco: ${selected.bank}`;
               inputMode="decimal"
               placeholder="0.00"
               value={qrAmount}
-              onChange={(e) =>
+              onChange={(e) => {
                 setQrAmount(
                   e.target.value
                     .replace(",", ".")
                     .replace(/[^\d.]/g, "")
                     .slice(0, 12)
-                )
-              }
+                );
+                registrarInteraccion();
+              }}
               aria-label="Monto opcional"
               onFocus={() =>
                 speakText(
@@ -582,7 +890,10 @@ Banco: ${selected.bank}`;
               style={input}
               placeholder="Ej. Cena, renta, préstamo"
               value={qrConcept}
-              onChange={(e) => setQrConcept(e.target.value.slice(0, 60))}
+              onChange={(e) => {
+                setQrConcept(e.target.value.slice(0, 60));
+                registrarInteraccion();
+              }}
               aria-label="Concepto opcional"
               onFocus={() =>
                 speakText(
@@ -601,6 +912,31 @@ Banco: ${selected.bank}`;
 
         {toast && <div style={toastBox(toast.type)}>{toast.msg}</div>}
       </div>
+
+      {/* Estilos CSS para las animaciones */}
+      <style jsx>{`
+        @keyframes fadeInScale {
+          from {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+          }
+        }
+        
+        @keyframes slideInDown {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }

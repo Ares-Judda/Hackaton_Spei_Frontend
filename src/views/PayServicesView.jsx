@@ -1,20 +1,90 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { FaBolt, FaTint, FaWifi, FaPhone, FaPlus } from "react-icons/fa";
+import { getAiRisk } from "../services/aiService";
 import logo from "../assets/logo.png";
 
-export default function PayServicesView({ userSettings, onBack }) {
-  // ===== Función de lectura en voz =====
-  const speakText = (text) => {
-    if (typeof window === "undefined") return;
-    if (!("speechSynthesis" in window)) {
-      console.warn("speechSynthesis no disponible en este navegador.");
-      return;
-    }
+// 🔊 Función de lectura accesible
+function speakText(text, userSettings) {
+  if (typeof window === "undefined") return;
+  if (!("speechSynthesis" in window)) return;
+  if (!userSettings?.needsVoiceAssistant && !userSettings?.usesScreenReader) return;
+  try {
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = "es-MX";
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utter);
+  } catch (e) {
+    console.error("Error en lectura de voz:", e);
+  }
+}
+
+// ====== Mapeo de niveles de riesgo ======
+const mapearNivelRiesgo = (nivel) => {
+  const mapeo = {
+    'low': 'bajo',
+    'medium': 'intermedio', 
+    'high': 'alto',
+    'bajo': 'bajo',
+    'medio': 'intermedio',
+    'alto': 'alto'
   };
+  return mapeo[nivel?.toLowerCase()] || 'intermedio';
+};
+
+// ====== Mapeo de factores de riesgo a mensajes CLAROS para el usuario ======
+const traducirFactoresRiesgo = (factores) => {
+  if (!factores || !Array.isArray(factores)) return [];
+  
+  const mapeoFactores = {
+    // Factores técnicos de la API
+    'high_amount': 'El monto es más alto de lo habitual para pagos de servicios',
+    'unusual_time': 'Estás realizando el pago en un horario poco común',
+    'geolocation_change': 'La ubicación desde donde realizas el pago ha cambiado',
+    'new_device': 'Estás usando un dispositivo nuevo',
+    'first_transaction': 'Es una de tus primeras transacciones',
+    'unusual_pattern': 'El patrón de pago es diferente a tu comportamiento normal',
+    'low_history': 'Tienes poco historial de transacciones',
+    'suspicious_service': 'El servicio tiene características inusuales',
+    'new_service_provider': 'Es la primera vez que pagas este servicio',
+    'routine_transaction': 'Pago rutinario',
+    
+    // Factores específicos de pagos de servicios
+    'unusual_service_amount': 'El monto es inusual para este tipo de servicio',
+    'irregular_payment_frequency': 'La frecuencia de pago es irregular',
+    
+    // Factores en español por si acaso
+    'Monto elevado': 'El monto es más alto de lo habitual para pagos de servicios',
+    'Horario inusual': 'Estás realizando el pago en un horario poco común',
+    'Ubicación diferente': 'La ubicación desde donde realizas el pago ha cambiado',
+    'Dispositivo nuevo': 'Estás usando un dispositivo nuevo',
+    'Poco historial': 'Tienes poco historial de transacciones',
+    'Proveedor nuevo': 'Es la primera vez que pagas este servicio',
+    'Transacción normal': 'Transacción rutinaria'
+  };
+
+  return factores.map(factor => 
+    mapeoFactores[factor] || `Factor de riesgo: ${factor}`
+  );
+};
+
+// ====== Generar mensaje de riesgo accesible ======
+const generarMensajeRiesgo = (nivel, factores, esServicioNuevo) => {
+  const nivelTraducido = mapearNivelRiesgo(nivel);
+  
+  if (nivelTraducido === 'alto') {
+    return 'Revisa cuidadosamente este pago';
+  }
+  
+  if (nivelTraducido === 'intermedio') {
+    return esServicioNuevo ? 'Servicio nuevo - Verifica datos' : 'Revisa los detalles del pago';
+  }
+  
+  return esServicioNuevo ? 'Servicio nuevo' : 'Transacción segura';
+};
+
+export default function PayServicesView({ userSettings, onBack }) {
+  // ===== Función de lectura en voz =====
+  const speakTextLocal = (text) => speakText(text, userSettings);
 
   // ===== Servicios predefinidos =====
   const presets = [
@@ -73,6 +143,10 @@ export default function PayServicesView({ userSettings, onBack }) {
   const [toast, setToast] = useState(null);
   const [successOpen, setSuccessOpen] = useState(false);
 
+  // ===== Estado para IA de riesgo =====
+  const [aiRiskData, setAiRiskData] = useState(null);
+  const [loadingRisk, setLoadingRisk] = useState(false);
+
   const setField = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const toNumber = (v) => {
@@ -95,6 +169,109 @@ export default function PayServicesView({ userSettings, onBack }) {
   const summaryRef = mode === "preset" ? form.refPreset : form.customRef;
   const summaryConvenio =
     mode === "preset" ? "(automático)" : form.customConvenio || "-";
+
+  // ====== Función para consultar riesgo de IA ======
+  const consultarRiesgoIA = async () => {
+    if (!amount || amount <= 0) return;
+
+    setLoadingRisk(true);
+    try {
+      const payload = {
+        user_id: "current_user",
+        amount: amount,
+        transaction_type: "service_payment",
+        service_type: mode === "preset" ? selectedService : "custom",
+        service_name: mode === "preset" ? summaryName : form.customName,
+        is_new_service: form.refPreset === "" && form.customConvenio === "",
+        hour_of_day: new Date().getHours(),
+        num_past_transactions: 0,
+        avg_transaction_amount: amount,
+        max_transaction_amount: amount,
+        is_new_device: false,
+        geolocation_changed: false
+      };
+
+      const response = await getAiRisk(payload);
+      setAiRiskData(response.data);
+    } catch (error) {
+      console.error("Error al consultar riesgo de IA:", error);
+      // En caso de error, usar lógica de respaldo
+      setAiRiskData({
+        result: {
+          risk_level: amount > 5000 ? "medium" : "low",
+          risk_score: amount > 5000 ? 65 : 25,
+          risk_factors: amount > 5000 ? ["high_amount"] : ["routine_transaction"]
+        }
+      });
+    } finally {
+      setLoadingRisk(false);
+    }
+  };
+
+  // ====== Determinar nivel de riesgo basado en IA o lógica de respaldo ======
+  const determinarRiesgo = () => {
+    if (loadingRisk) {
+      return { 
+        level: "calculando", 
+        msg: "Calculando riesgo...",
+        levelTraducido: "calculando",
+        factors: [] 
+      };
+    }
+
+    if (aiRiskData) {
+      const riskLevel = aiRiskData.result.risk_level;
+      const riskFactors = aiRiskData.result.risk_factors;
+      const nivelTraducido = mapearNivelRiesgo(riskLevel);
+      const factoresTraducidos = traducirFactoresRiesgo(riskFactors);
+      const esServicioNuevo = form.refPreset === "" && form.customConvenio === "";
+      const mensaje = generarMensajeRiesgo(riskLevel, factoresTraducidos, esServicioNuevo);
+
+      return { 
+        level: riskLevel, 
+        levelTraducido: nivelTraducido,
+        msg: mensaje,
+        factors: factoresTraducidos
+      };
+    }
+
+    // Lógica de respaldo si no hay datos de IA
+    const esServicioNuevo = form.refPreset === "" && form.customConvenio === "";
+    const montoAlto = amount > 5000;
+    
+    if (esServicioNuevo) {
+      return { 
+        level: "medium", 
+        levelTraducido: "intermedio",
+        msg: "Servicio nuevo - Verifica datos", 
+        factors: ["Es la primera vez que pagas este servicio"] 
+      };
+    } else if (montoAlto) {
+      return { 
+        level: "medium", 
+        levelTraducido: "intermedio",
+        msg: "Revisa los detalles del pago", 
+        factors: ["El monto es más alto de lo habitual para servicios"] 
+      };
+    } else {
+      return { 
+        level: "low", 
+        levelTraducido: "bajo",
+        msg: "Transacción segura", 
+        factors: ["Pago rutinario"] 
+      };
+    }
+  };
+
+  const riesgoActual = determinarRiesgo();
+
+  // ====== Efectos para consultar riesgo cuando cambien los parámetros ======
+  useEffect(() => {
+    if (amount > 0) {
+      const timeoutId = setTimeout(consultarRiesgoIA, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [amount, mode, selectedService, form.refPreset, form.customConvenio]);
 
   // ===== Estilos =====
   const theme = userSettings?.theme;
@@ -257,19 +434,19 @@ export default function PayServicesView({ userSettings, onBack }) {
     ev?.preventDefault?.();
     if (!validate()) {
       setToast({ type: "error", msg: "Revisa los campos marcados." });
-      speakText("Revisa los campos marcados, hay errores.");
+      speakTextLocal("Revisa los campos marcados, hay errores.");
       return;
     }
     setSubmitting(true);
     try {
       await new Promise((r) => setTimeout(r, 900));
       setToast({ type: "success", msg: "Pago realizado correctamente" });
-      speakText("Pago realizado correctamente.");
+      speakTextLocal("Pago realizado correctamente.");
       setSuccessOpen(true);
       setForm((f) => ({ ...f, amountStr: "" }));
     } catch (e) {
       setToast({ type: "error", msg: "No se pudo completar el pago." });
-      speakText("No se pudo completar el pago.");
+      speakTextLocal("No se pudo completar el pago.");
     } finally {
       setSubmitting(false);
     }
@@ -284,7 +461,7 @@ export default function PayServicesView({ userSettings, onBack }) {
             <button
               onClick={() => {
                 onBack?.();
-                speakText("Volviendo a la pantalla anterior.");
+                speakTextLocal("Volviendo a la pantalla anterior.");
               }}
               style={{ ...ghostBtn, position: "absolute", top: 0, left: 0 }}
               onMouseDown={onPressIn}
@@ -325,6 +502,38 @@ export default function PayServicesView({ userSettings, onBack }) {
           <div style={toastBox(toast.type)}>{toast.msg}</div>
         )}
 
+        {/* Indicador de riesgo */}
+        <div style={fieldCard}>
+          <div style={legend}>Evaluación de riesgo</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <p style={{ margin: 0, fontSize: "0.95rem", color: textColor }}>
+                Nivel de riesgo:{" "}
+                <b style={{
+                  color:
+                    riesgoActual.levelTraducido === "alto" ? "#f87171" :
+                    riesgoActual.levelTraducido === "intermedio" ? "#eab308" : 
+                    riesgoActual.levelTraducido === "calculando" ? subtleText : "#22c55e",
+                }}>
+                  {riesgoActual.levelTraducido === "calculando" ? "CALCULANDO..." : riesgoActual.levelTraducido.toUpperCase()}
+                </b>
+              </p>
+              <p style={{ margin: 0, fontSize: "0.85rem", color: subtleText }}>
+                {riesgoActual.msg}
+              </p>
+            </div>
+          </div>
+          {riesgoActual.factors && riesgoActual.factors.length > 0 && (
+            <div style={{ marginTop: "8px" }}>
+              <ul style={{ margin: 0, paddingLeft: "16px", fontSize: "0.8rem", color: subtleText }}>
+                {riesgoActual.factors.map((factor, index) => (
+                  <li key={index}>{factor}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
         {/* Cuenta de origen */}
         <div style={fieldCard}>
           <div style={legend}>Cuenta de origen</div>
@@ -334,7 +543,7 @@ export default function PayServicesView({ userSettings, onBack }) {
                 key={acc.id}
                 onClick={() => {
                   setSelectedSourceId(acc.id);
-                  speakText(`Seleccionaste ${acc.alias} como cuenta de origen`);
+                  speakTextLocal(`Seleccionaste ${acc.alias} como cuenta de origen`);
                 }}
                 style={sourceChip(selectedSourceId === acc.id)}
                 aria-label={`Usar ${acc.alias} como cuenta de origen`}
@@ -360,7 +569,7 @@ export default function PayServicesView({ userSettings, onBack }) {
             <button
               onClick={() => {
                 setMode("preset");
-                speakText("Modo servicios predefinidos seleccionado");
+                speakTextLocal("Modo servicios predefinidos seleccionado");
               }}
               style={chip(mode === "preset")}
             >
@@ -370,7 +579,7 @@ export default function PayServicesView({ userSettings, onBack }) {
             <button
               onClick={() => {
                 setMode("custom");
-                speakText("Modo servicio personalizado seleccionado");
+                speakTextLocal("Modo servicio personalizado seleccionado");
               }}
               style={chip(mode === "custom")}
             >
@@ -402,7 +611,7 @@ export default function PayServicesView({ userSettings, onBack }) {
                     key={p.id}
                     onClick={() => {
                       setSelectedService(p.id);
-                      speakText(`Seleccionaste ${p.label}`);
+                      speakTextLocal(`Seleccionaste ${p.label}`);
                     }}
                     style={chip(selectedService === p.id)}
                     aria-label={`Seleccionar ${p.label}`}
@@ -424,7 +633,7 @@ export default function PayServicesView({ userSettings, onBack }) {
                   onChange={(e) => setField("refPreset", e.target.value)}
                   placeholder="Ej. Número de contrato/servicio"
                   onFocus={() =>
-                    speakText(
+                    speakTextLocal(
                       "Ingresa la referencia de tu servicio predefinido, por ejemplo el número de contrato"
                     )
                   }
@@ -449,7 +658,7 @@ export default function PayServicesView({ userSettings, onBack }) {
                   onChange={(e) => setField("customName", e.target.value)}
                   placeholder="Ej. Agua Municipal Xalapa"
                   onFocus={() =>
-                    speakText("Ingresa el nombre del servicio personalizado")
+                    speakTextLocal("Ingresa el nombre del servicio personalizado")
                   }
                 />
                 {errors.customName && (
@@ -475,7 +684,7 @@ export default function PayServicesView({ userSettings, onBack }) {
                     )
                   }
                   placeholder="Solo dígitos"
-                  onFocus={() => speakText("Ingresa el número de convenio")}
+                  onFocus={() => speakTextLocal("Ingresa el número de convenio")}
                 />
                 {errors.customConvenio && (
                   <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
@@ -495,7 +704,7 @@ export default function PayServicesView({ userSettings, onBack }) {
                   onChange={(e) => setField("customRef", e.target.value)}
                   placeholder="Número de referencia del servicio"
                   onFocus={() =>
-                    speakText("Ingresa la referencia del servicio personalizado")
+                    speakTextLocal("Ingresa la referencia del servicio personalizado")
                   }
                 />
                 {errors.customRef && (
@@ -521,7 +730,7 @@ export default function PayServicesView({ userSettings, onBack }) {
             value={form.amountStr}
             onChange={(e) => setField("amountStr", e.target.value)}
             placeholder="0.00"
-            onFocus={() => speakText("Ingresa la cantidad a pagar en pesos")}
+            onFocus={() => speakTextLocal("Ingresa la cantidad a pagar en pesos")}
           />
           <p style={small}>
             {amount ? `Se pagarán ${toMXN(amount)}` : "Ej. 350.00"}
@@ -556,6 +765,12 @@ export default function PayServicesView({ userSettings, onBack }) {
             <div>
               <b>Monto:</b> {toMXN(amount)}
             </div>
+            <div style={{ marginTop: "8px", padding: "8px", borderRadius: "8px", backgroundColor: 
+              riesgoActual.levelTraducido === "alto" ? (isDark ? "#3a0d0d" : "#fef2f2") :
+              riesgoActual.levelTraducido === "intermedio" ? (isDark ? "#3b2e05" : "#fffbeb") :
+              (isDark ? "#052e1b" : "#f0fdf4") }}>
+              <b>Evaluación:</b> Riesgo {riesgoActual.levelTraducido} - {riesgoActual.msg}
+            </div>
           </div>
         </div>
 
@@ -564,7 +779,7 @@ export default function PayServicesView({ userSettings, onBack }) {
           <button
             onClick={() => {
               onBack?.();
-              speakText("Cancelando pago y volviendo al inicio");
+              speakTextLocal("Cancelando pago y volviendo al inicio");
             }}
             style={ghostBtn}
             onMouseDown={onPressIn}
@@ -574,18 +789,18 @@ export default function PayServicesView({ userSettings, onBack }) {
           </button>
           <button
             onClick={pay}
-            disabled={submitting}
+            disabled={submitting || loadingRisk}
             style={{
               ...primaryBtn,
               backgroundColor: accentColor,
-              opacity: submitting ? 0.8 : 1,
+              opacity: (submitting || loadingRisk) ? 0.8 : 1,
             }}
             onMouseEnter={onHoverIn}
             onMouseLeave={onHoverOut}
             onMouseDown={onPressIn}
             onMouseUp={onPressOut}
           >
-            {submitting ? "Procesando..." : "Pagar ahora"}
+            {submitting ? "Procesando..." : loadingRisk ? "Calculando..." : "Pagar ahora"}
           </button>
         </div>
 
@@ -659,7 +874,7 @@ export default function PayServicesView({ userSettings, onBack }) {
                 <button
                   onClick={() => {
                     setSuccessOpen(false);
-                    speakText("Preparado para hacer otro pago");
+                    speakTextLocal("Preparado para hacer otro pago");
                   }}
                   style={ghostBtn}
                   onMouseDown={onPressIn}
@@ -671,7 +886,7 @@ export default function PayServicesView({ userSettings, onBack }) {
                   onClick={() => {
                     setSuccessOpen(false);
                     onBack?.();
-                    speakText("Volviendo al inicio");
+                    speakTextLocal("Volviendo al inicio");
                   }}
                   style={{ ...primaryBtn, backgroundColor: accentColor }}
                   onMouseEnter={onHoverIn}
